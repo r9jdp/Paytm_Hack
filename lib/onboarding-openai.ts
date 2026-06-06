@@ -57,7 +57,8 @@ Rules:
 - Prefer the transcript for quantity and unit.
 - Prefer the frame for product names, categories, packaging, pack sizes, and visible prices.
 - If price is not visible or spoken, return null.
-- Mark isComplete true when at least one inventory item has a name and quantity, or when the transcript says the user is done.`;
+- Mark isComplete true only when the transcript clearly says the user is done, finished, or wants to create the storefront.
+- Otherwise keep isComplete false so the app can continue collecting multiple products.`;
 
 function createClient() {
   const apiKey = process.env.OPENAI_API_KEY;

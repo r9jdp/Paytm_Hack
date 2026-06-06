@@ -7,8 +7,8 @@ export function getOpenAISafetyIdentifier(userId: string) {
 
 function getRealtimeModel() {
   const configuredModel = process.env.OPENAI_REALTIME_MODEL?.trim();
-  if (!configuredModel || configuredModel === "gpt-realtime-2") {
-    return "gpt-realtime";
+  if (!configuredModel) {
+    return "gpt-realtime-2";
   }
 
   return configuredModel;

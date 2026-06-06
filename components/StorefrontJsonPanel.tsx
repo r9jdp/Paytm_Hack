@@ -1,6 +1,7 @@
 "use client";
 
-import { Check, Copy, Download } from "lucide-react";
+import { Check, Copy, Download, Store } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import type { StorefrontExport } from "@/lib/types";
@@ -12,6 +13,7 @@ type StorefrontJsonPanelProps = {
 };
 
 export function StorefrontJsonPanel({ payload }: StorefrontJsonPanelProps) {
+  const router = useRouter();
   const [copied, setCopied] = useState(false);
 
   if (!payload) return null;
@@ -35,6 +37,10 @@ export function StorefrontJsonPanel({ payload }: StorefrontJsonPanelProps) {
     URL.revokeObjectURL(url);
   }
 
+  function openStorefront() {
+    router.push(`/storefront?exportId=${encodeURIComponent(safePayload.id)}`);
+  }
+
   return (
     <section className={styles.exportPanel} aria-label="Storefront JSON export">
       <div className={styles.exportHeader}>
@@ -50,6 +56,10 @@ export function StorefrontJsonPanel({ payload }: StorefrontJsonPanelProps) {
           <button className={styles.primaryButton} onClick={downloadJson} type="button">
             <Download aria-hidden="true" size={16} />
             Download JSON
+          </button>
+          <button className={styles.primaryButton} onClick={openStorefront} type="button">
+            <Store aria-hidden="true" size={16} />
+            Open storefront
           </button>
         </div>
       </div>
