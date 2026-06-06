@@ -205,11 +205,7 @@ export function HomeScreen({
 
     await update({ role });
 
-    if (role === "merchant") {
-      startTransition(() => router.push("/gemini"));
-    } else {
-      startTransition(() => router.refresh());
-    }
+    startTransition(() => router.refresh());
 
     setPendingRole(null);
   }
