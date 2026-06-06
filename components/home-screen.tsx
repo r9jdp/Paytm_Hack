@@ -313,6 +313,12 @@ export function HomeScreen({
           <span className="brand-text">Paytm Vision</span>
         </div>
         <div className="topbar-actions">
+          {session?.user ? (
+            <Link className="secondary-button" href="/storefront">
+              <Store aria-hidden="true" size={16} />
+              Your storefront
+            </Link>
+          ) : null}
           {installPrompt && !isStandalone ? (
             <button className="secondary-button" type="button" onClick={installApp}>
               <Download aria-hidden="true" size={18} />
@@ -333,11 +339,10 @@ export function HomeScreen({
       <main className="main">
         <section className="workspace">
           <div className="hero-copy">
-            <p className="eyebrow">PWA now, realtime vision-ready later</p>
-            <h1>Google sign-in for merchants and buyers.</h1>
+            <p className="eyebrow">Role based product workflow</p>
+            <h1>Onboard merchants and shoppers in one place.</h1>
             <p className="lede">
-              Paytm Vision starts with secure account access and role onboarding, then leaves a
-              clean camera surface ready for OpenAI Realtime vision.
+              Sign in, set your role, and move straight into capture, discovery, or checkout.
             </p>
             <ul className="feature-row" aria-label="App features">
               <li>
@@ -346,11 +351,15 @@ export function HomeScreen({
               </li>
               <li>
                 <CheckCircle2 aria-hidden="true" size={17} />
-                Google OAuth
+                Google sign-in
               </li>
               <li>
                 <CheckCircle2 aria-hidden="true" size={17} />
                 Merchant onboarding
+              </li>
+              <li>
+                <CheckCircle2 aria-hidden="true" size={17} />
+                Buyer storefront browsing
               </li>
             </ul>
           </div>
@@ -388,8 +397,10 @@ export function HomeScreen({
               ) : (
                 <>
                   <div>
-                    <p className="panel-title">Choose your mode.</p>
-                    <p className="panel-copy">Paytm opens the matching workspace after Google login.</p>
+                    <p className="panel-title">Choose your mode</p>
+                    <p className="panel-copy">
+                      Pick the role and jump directly into the workflow that matches your next action.
+                    </p>
                   </div>
                   <div className="role-grid">
                     {roleOptions.map((option) => {
@@ -424,8 +435,10 @@ export function HomeScreen({
           ) : (
             <section className="panel" aria-label="Sign in">
               <div>
-                <p className="panel-title">Sign in to continue.</p>
-                <p className="panel-copy">After Google login, the app asks whether you are a buyer or merchant.</p>
+                <p className="panel-title">Sign in to continue</p>
+                <p className="panel-copy">
+                  After Google login, the app asks whether you are a buyer or merchant.
+                </p>
               </div>
               <form action={signInWithGoogle}>
                 <button className="primary-button" type="submit">
@@ -497,7 +510,7 @@ function MerchantOnboarding({
           </p>
           <p className="panel-copy">
             {step === 1
-              ? "Store name, business type, phone, and Mumbai location are saved to your merchant profile."
+              ? "Store name, business type, phone, and location are saved to your merchant profile."
               : "Buyers will use these details for pickup, delivery, and order planning."}
           </p>
         </div>

@@ -45,21 +45,21 @@ export function StorefrontJsonPanel({ payload }: StorefrontJsonPanelProps) {
     <section className={styles.exportPanel} aria-label="Storefront JSON export">
       <div className={styles.exportHeader}>
         <div>
-          <span>Storefront JSON</span>
-          <h2>Captured onboarding export</h2>
+          <span>Merchant export</span>
+          <h2>Storefront capture complete</h2>
         </div>
         <div className={styles.exportActions}>
           <button className={styles.secondaryButton} onClick={() => void copyJson()} type="button">
             {copied ? <Check aria-hidden="true" size={16} /> : <Copy aria-hidden="true" size={16} />}
-            {copied ? "Copied" : "Copy"}
+            {copied ? "Copied" : "Copy JSON"}
           </button>
           <button className={styles.primaryButton} onClick={downloadJson} type="button">
             <Download aria-hidden="true" size={16} />
-            Download JSON
+            Download capture
           </button>
           <button className={styles.primaryButton} onClick={openStorefront} type="button">
             <Store aria-hidden="true" size={16} />
-            Open storefront
+            Open storefront view
           </button>
         </div>
       </div>

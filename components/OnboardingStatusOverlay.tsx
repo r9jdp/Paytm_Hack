@@ -14,10 +14,10 @@ type OnboardingStatusOverlayProps = {
 };
 
 const stageLabels: Record<OnboardingStage, string> = {
-  idle: "Start camera and voice",
-  inventory_prompt: "Asking for inventory",
-  inventory_scanning: "Capturing inventory",
-  export_ready: "JSON export ready"
+  idle: "Ready to start",
+  inventory_prompt: "Starting guided capture",
+  inventory_scanning: "Scanning inventory frame",
+  export_ready: "Export ready"
 };
 
 export function OnboardingStatusOverlay({
@@ -50,7 +50,7 @@ export function OnboardingStatusOverlay({
 
       <div className={styles.captionBox}>
         <span>{latestTranscript?.role ?? "assistant"}</span>
-        <p>{latestTranscript?.text ?? "The assistant will guide you by voice."}</p>
+        <p>{latestTranscript?.text ?? "The assistant will guide you by voice through the capture steps."}</p>
       </div>
     </aside>
   );

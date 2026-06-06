@@ -72,8 +72,8 @@ export default async function StorefrontPage({ searchParams }: StorefrontPagePro
             <h1 id="storefront-title">{storeName}</h1>
             <p className="lede">
               {products.length
-                ? "Products are loaded from the confirmed inventory saved in Supabase."
-                : "No confirmed products are available yet. Capture inventory to publish this view."}
+                ? "These are confirmed products from your latest successful inventory capture."
+                : "Capture inventory from the merchant onboarding flow to populate this page."}
             </p>
           </div>
         </div>
@@ -85,11 +85,11 @@ export default async function StorefrontPage({ searchParams }: StorefrontPagePro
           </div>
           <div>
             <span>Total stock</span>
-            <strong>{totalQuantity || "Open"}</strong>
+            <strong>{totalQuantity || "—"}</strong>
           </div>
           <div>
             <span>Categories</span>
-            <strong>{categories.size || "Unsorted"}</strong>
+            <strong>{categories.size || "—"}</strong>
           </div>
           <div>
             <span>Last sync</span>
@@ -149,10 +149,12 @@ export default async function StorefrontPage({ searchParams }: StorefrontPagePro
           <div className="storefront-empty">
             <Store aria-hidden="true" size={38} />
             <h2>Storefront inventory is empty</h2>
-            <p>Finish the voice inventory manager, then use the confirmation button to open this storefront.</p>
+            <p>
+              Capture inventory in <strong>/gemini</strong>, then confirm it to publish products here.
+            </p>
             <Link className="primary-button" href="/gemini">
               <PackageCheck aria-hidden="true" size={18} />
-              Capture products
+              Open capture now
             </Link>
           </div>
         )}

@@ -1,6 +1,7 @@
 "use client";
 
-import { PackageCheck } from "lucide-react";
+import { CircleChevronLeft, PackageCheck, Store } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { OnboardingStatusOverlay } from "@/components/OnboardingStatusOverlay";
@@ -361,6 +362,16 @@ export function OnboardingAgentApp() {
         <div>
           <span className={styles.eyebrow}>Merchant inventory agent</span>
           <h1 id="onboarding-title">Product inventory, captured by voice and video.</h1>
+        </div>
+        <div className={styles.exportActions} aria-label="Onboarding quick actions">
+          <Link className={styles.secondaryButton} href="/">
+            <CircleChevronLeft aria-hidden="true" size={16} />
+            Return home
+          </Link>
+          <Link className={styles.secondaryButton} href="/storefront">
+            <Store aria-hidden="true" size={16} />
+            View storefront
+          </Link>
         </div>
         <VoiceSession error={voice.error} status={voice.status} />
       </section>
