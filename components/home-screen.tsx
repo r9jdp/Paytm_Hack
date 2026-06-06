@@ -41,7 +41,7 @@ const roleOptions: Array<{
   {
     role: "merchant",
     title: "Merchant",
-    description: "Counter operations, product capture, and assisted checkout.",
+    description: "Open Point & Ask AI for camera-based product help.",
     icon: Store
   },
   {
@@ -54,24 +54,24 @@ const roleOptions: Array<{
 
 const roleSurfaces = {
   merchant: {
-    title: "Merchant counter",
+    title: "Point & Ask AI",
     eyebrow: "Merchant mode",
-    description: "Accept payments, stage products, and keep the counter moving.",
+    description: "Use the working camera assistant to ask questions about products, shelves, labels, and menus.",
     actions: [
       {
-        icon: CircleDollarSign,
-        title: "Payment desk",
-        description: "UPI-ready checkout surface for counter flows."
+        icon: Camera,
+        title: "Live camera",
+        description: "Point at any product, shelf, receipt, label, or menu."
       },
       {
-        icon: Camera,
-        title: "Product camera",
-        description: "A clean camera zone for visual assistance."
+        icon: ScanLine,
+        title: "Ask by voice or text",
+        description: "Ask what you see, read text, or extract product details."
       },
       {
         icon: CheckCircle2,
-        title: "Order signals",
-        description: "Status tiles for pending, paid, and packed orders."
+        title: "Local history",
+        description: "Answers and thumbnails are stored locally for quick review."
       }
     ]
   },
@@ -155,7 +155,13 @@ export function HomeScreen({ session: initialSession }: HomeScreenProps) {
     }
 
     await update({ role });
-    startTransition(() => router.refresh());
+
+    if (role === "merchant") {
+      startTransition(() => router.push("/gemini"));
+    } else {
+      startTransition(() => router.refresh());
+    }
+
     setPendingRole(null);
   }
 
@@ -334,20 +340,20 @@ function RoleWorkspace({ role }: { role: AppRole }) {
           })}
         </div>
 
-        <div className="vision-frame" aria-label="Realtime vision workspace">
+        <div className="vision-frame" aria-label="Point and Ask AI workspace">
           <div className="vision-frame-copy">
             <Camera aria-hidden="true" size={28} />
-            <span>Realtime vision</span>
+            <span>Point & Ask AI</span>
           </div>
           {role === "merchant" ? (
-            <Link className="primary-button" href="/gemini_live">
+            <Link className="primary-button" href="/gemini">
               <ScanLine aria-hidden="true" size={18} />
-              Start shop scan
+              Open Point & Ask AI
             </Link>
           ) : (
             <span className="surface-chip pending">
               <RefreshCw aria-hidden="true" size={14} />
-              Merchant scan only
+              Merchant camera assistant only
             </span>
           )}
         </div>
