@@ -73,6 +73,47 @@ a {
   grid-template-rows: auto 1fr;
 }
 
+.gemini-page-shell {
+  display: grid;
+  gap: 16px;
+  width: min(1100px, 100%);
+  margin: 0 auto;
+  padding: 24px clamp(16px, 4vw, 56px) 40px;
+}
+
+.gemini-page-intro {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: clamp(16px, 3vw, 22px);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.gemini-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.gemini-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-soft);
+  padding: 8px 12px;
+  font-size: 0.88rem;
+}
+
+.gemini-page-intro .secondary-button {
+  margin-left: auto;
+}
+
 .topbar {
   position: sticky;
   top: 0;
@@ -329,6 +370,12 @@ h3 {
   line-height: 1.5;
 }
 
+.role-copy-subtle {
+  color: #576370;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
 .status-item {
   display: flex;
   align-items: center;
@@ -419,6 +466,48 @@ h3 {
   display: block;
   margin: 0;
   font-weight: 700;
+}
+
+.merchant-highlight-grid,
+.buyer-highlight-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.merchant-highlight,
+.buyer-highlight {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  min-height: 88px;
+  background: #ffffff;
+}
+
+.merchant-highlight svg,
+.buyer-highlight svg {
+  color: var(--teal);
+}
+
+.merchant-highlight h3,
+.buyer-highlight h3 {
+  margin: 0;
+}
+
+.merchant-highlight p,
+.buyer-highlight p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.merchant-highlight {
+  background: var(--surface-soft);
 }
 
 .surface-chip {
@@ -1288,6 +1377,8 @@ h3 {
   .form-grid,
   .readonly-grid,
   .merchant-summary,
+  .merchant-highlight-grid,
+  .buyer-highlight-grid,
   .product-grid,
   .storefront-metrics,
   .storefront-product-grid {
@@ -1310,6 +1401,8 @@ h3 {
   .form-grid,
   .readonly-grid,
   .merchant-summary,
+  .merchant-highlight-grid,
+  .buyer-highlight-grid,
   .product-grid {
     grid-template-columns: 1fr;
   }

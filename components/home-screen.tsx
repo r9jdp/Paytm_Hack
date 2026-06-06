@@ -18,6 +18,7 @@ import {
   MapPin,
   Minus,
   PackageSearch,
+  Receipt,
   Phone,
   Plus,
   QrCode,
@@ -25,8 +26,10 @@ import {
   ScanLine,
   ShieldCheck,
   ShoppingBag,
+  Sparkles,
   Smartphone,
   Store,
+  Route,
   Truck,
   Wallet,
   X
@@ -79,18 +82,21 @@ const roleOptions: Array<{
   role: AppRole;
   title: string;
   description: string;
+  blurb: string;
   icon: LucideIcon;
 }> = [
   {
     role: "merchant",
     title: "Merchant",
     description: "Start voice-led product inventory onboarding.",
+    blurb: "From shelf scan to storefront-ready records with one workflow.",
     icon: Store
   },
   {
     role: "buyer",
     title: "Buyer",
     description: "Scan-led shopping, context, and a fast payment handoff.",
+    blurb: "Browse nearby merchants, compare products, and complete a quick checkout.",
     icon: ShoppingBag
   }
 ];
@@ -149,6 +155,42 @@ const roleSurfaces = {
     actions: Array<{ icon: LucideIcon; title: string; description: string }>;
   }
 >;
+
+const merchantHomeHighlights = [
+  {
+    icon: Store,
+    title: "Store first",
+    detail: "Keep identity and location details ready for all captures."
+  },
+  {
+    icon: Route,
+    title: "Delivery settings",
+    detail: "Set fulfillment radius and minimum order to reduce order churn."
+  },
+  {
+    icon: ShieldCheck,
+    title: "Trust trail",
+    detail: "Capture transcripts and proof with each inventory session."
+  }
+];
+
+const buyerHomeHighlights = [
+  {
+    icon: Receipt,
+    title: "Review before pay",
+    detail: "Compare totals in one place before you simulate payment."
+  },
+  {
+    icon: Sparkles,
+    title: "Fast discovery",
+    detail: "Jump between nearby stores and inspect product packs quickly."
+  },
+  {
+    icon: CircleDollarSign,
+    title: "Instant handoff",
+    detail: "Pick UPI, wallet, card, or bank and complete in one step."
+  }
+];
 
 const paymentMethods: Array<{
   id: PaymentMethod;
@@ -422,6 +464,7 @@ export function HomeScreen({
                               {pendingRole === option.role ? "Saving..." : option.title}
                             </span>
                             <span className="role-copy">{option.description}</span>
+                            <span className="role-copy role-copy-subtle">{option.blurb}</span>
                           </span>
                           <ChevronRight aria-hidden="true" size={18} />
                         </button>
@@ -698,46 +741,84 @@ function RoleWorkspace({
       </div>
 
       {role === "merchant" && merchantIdentity ? (
-        <div className="merchant-summary" aria-label="Merchant identity">
-          <div className="summary-item">
-            <span className="status-label">Store</span>
-            <span className="status-value">{merchantIdentity.storeName}</span>
+        <>
+          <div className="merchant-summary" aria-label="Merchant identity">
+            <div className="summary-item">
+              <span className="status-label">Store</span>
+              <span className="status-value">{merchantIdentity.storeName}</span>
+            </div>
+            <div className="summary-item">
+              <span className="status-label">Business</span>
+              <span className="status-value">{merchantBusinessTypeLabels[merchantIdentity.businessType]}</span>
+            </div>
+            <div className="summary-item">
+              <span className="status-label">Timings</span>
+              <span className="status-value">{merchantIdentity.storeTimings}</span>
+            </div>
+            <div className="summary-item">
+              <span className="status-label">Fulfillment</span>
+              <span className="status-value">
+                {merchantFulfillmentTypeLabels[merchantIdentity.fulfillmentType]}
+              </span>
+            </div>
+            <div className="summary-item">
+              <span className="status-label">Delivery</span>
+              <span className="status-value">{merchantIdentity.deliveryRadiusKm} km</span>
+            </div>
+            <div className="summary-item">
+              <span className="status-label">Minimum order</span>
+              <span className="status-value">Rs.{merchantIdentity.minimumOrderValue}</span>
+            </div>
+            <div className="summary-item">
+              <span className="status-label">Phone</span>
+              <span className="status-value">{merchantIdentity.phoneNumber}</span>
+            </div>
+            <div className="summary-item">
+              <span className="status-label">Location</span>
+              <span className="status-value">
+                {merchantIdentity.city} {merchantIdentity.pincode}
+              </span>
+            </div>
           </div>
-          <div className="summary-item">
-            <span className="status-label">Business</span>
-            <span className="status-value">
-              {merchantBusinessTypeLabels[merchantIdentity.businessType]}
-            </span>
-          </div>
-          <div className="summary-item">
-            <span className="status-label">Timings</span>
-            <span className="status-value">{merchantIdentity.storeTimings}</span>
-          </div>
-          <div className="summary-item">
-            <span className="status-label">Fulfillment</span>
-            <span className="status-value">
-              {merchantFulfillmentTypeLabels[merchantIdentity.fulfillmentType]}
-            </span>
-          </div>
-          <div className="summary-item">
-            <span className="status-label">Delivery</span>
-            <span className="status-value">{merchantIdentity.deliveryRadiusKm} km</span>
-          </div>
-          <div className="summary-item">
-            <span className="status-label">Minimum order</span>
-            <span className="status-value">Rs.{merchantIdentity.minimumOrderValue}</span>
-          </div>
-          <div className="summary-item">
-            <span className="status-label">Phone</span>
-            <span className="status-value">{merchantIdentity.phoneNumber}</span>
-          </div>
-          <div className="summary-item">
-            <span className="status-label">Location</span>
-            <span className="status-value">
-              {merchantIdentity.city} {merchantIdentity.pincode}
-            </span>
-          </div>
-        </div>
+
+          <section className="merchant-highlight-grid" aria-label="Merchant quick home setup">
+            {merchantHomeHighlights.map((highlight) => {
+              const Icon = highlight.icon;
+
+              return (
+                <article className="merchant-highlight" key={highlight.title}>
+                  <span>
+                    <Icon aria-hidden="true" size={16} />
+                  </span>
+                  <div>
+                    <h3>{highlight.title}</h3>
+                    <p>{highlight.detail}</p>
+                  </div>
+                </article>
+              );
+            })}
+          </section>
+        </>
+      ) : null}
+
+      {role === "buyer" ? (
+        <section className="buyer-highlight-grid" aria-label="Buyer home snapshot">
+          {buyerHomeHighlights.map((highlight) => {
+            const Icon = highlight.icon;
+
+            return (
+              <article className="buyer-highlight" key={highlight.title}>
+                <span>
+                  <Icon aria-hidden="true" size={16} />
+                </span>
+                <div>
+                  <h3>{highlight.title}</h3>
+                  <p>{highlight.detail}</p>
+                </div>
+              </article>
+            );
+          })}
+        </section>
       ) : null}
 
       <section className="role-surface" aria-label={`${surface.title} workspace`}>
