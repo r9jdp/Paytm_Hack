@@ -7,6 +7,10 @@ import {
   type MerchantFulfillmentType,
   type MerchantIdentitySummary
 } from "@/lib/merchant-options";
+import {
+  listProductsForSellerIds,
+  type SellerProductSummary
+} from "@/lib/product-inventory-store";
 
 type MerchantIdentityRow = {
   userId?: string;
@@ -26,6 +30,7 @@ type MerchantIdentityRow = {
 
 export type MerchantSellerSummary = MerchantIdentitySummary & {
   userId: string;
+  products: SellerProductSummary[];
 };
 
 export type MerchantIdentityInput = {
@@ -86,9 +91,17 @@ export async function listMerchantSellers() {
     `
   );
 
-  return result.rows.map((row) => ({
+  const sellers = result.rows.map((row) => ({
     userId: row.userId,
-    ...fromDatabaseMerchantIdentity(row)
+    ...fromDatabaseMerchantIdentity(row),
+    products: []
+  }));
+
+  const productsBySeller = await listProductsForSellerIds(sellers.map((seller) => seller.userId));
+
+  return sellers.map((seller) => ({
+    ...seller,
+    products: productsBySeller.get(seller.userId) ?? []
   }));
 }
 

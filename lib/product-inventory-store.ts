@@ -9,6 +9,29 @@ export type ProductInventoryInput = {
   userId?: string | null;
 };
 
+type ProductInventoryRow = {
+  id: string;
+  userId: string;
+  name: string;
+  category: string | null;
+  quantity: number | null;
+  unit: string | null;
+  packSize: string | null;
+  price: string | null;
+  confidence: number;
+};
+
+export type SellerProductSummary = {
+  id: string;
+  name: string;
+  category: string | null;
+  quantity: number | null;
+  unit: string | null;
+  packSize: string | null;
+  price: string | null;
+  confidence: number;
+};
+
 export async function replaceProductsForExport({
   exportId,
   products,
@@ -72,4 +95,48 @@ export async function replaceProductsForExport({
   } finally {
     client.release();
   }
+}
+
+export async function listProductsForSellerIds(userIds: string[]) {
+  if (!userIds.length) {
+    return new Map<string, SellerProductSummary[]>();
+  }
+
+  const result = await getPool().query<ProductInventoryRow>(
+    `
+      select
+        "id",
+        "userId",
+        "name",
+        "category",
+        "quantity",
+        "unit",
+        "packSize",
+        "price",
+        "confidence"
+      from "products"
+      where "userId" = any($1::text[])
+      order by "createdAt" desc, "name" asc
+    `,
+    [userIds]
+  );
+
+  const productsBySeller = new Map<string, SellerProductSummary[]>();
+
+  for (const row of result.rows) {
+    const products = productsBySeller.get(row.userId) ?? [];
+    products.push({
+      id: row.id,
+      name: row.name,
+      category: row.category,
+      quantity: row.quantity,
+      unit: row.unit,
+      packSize: row.packSize,
+      price: row.price,
+      confidence: row.confidence
+    });
+    productsBySeller.set(row.userId, products);
+  }
+
+  return productsBySeller;
 }

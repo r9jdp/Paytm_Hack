@@ -11,6 +11,8 @@ import {
   Clock,
   CreditCard,
   Download,
+  Landmark,
+  LoaderCircle,
   LogIn,
   LogOut,
   MapPin,
@@ -18,11 +20,16 @@ import {
   PackageSearch,
   Phone,
   Plus,
+  QrCode,
   RefreshCw,
   ScanLine,
+  ShieldCheck,
   ShoppingBag,
+  Smartphone,
   Store,
-  Truck
+  Truck,
+  Wallet,
+  X
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
@@ -64,13 +71,9 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 };
 
-type SimulatedProduct = {
-  id: string;
-  name: string;
-  price: number;
-  unit: string;
-  description: string;
-};
+type SellerProduct = MerchantSellerSummary["products"][number];
+type PaymentMethod = "upi" | "wallet" | "card" | "netbanking";
+type PaymentStatus = "idle" | "processing" | "success";
 
 const roleOptions: Array<{
   role: AppRole;
@@ -146,6 +149,38 @@ const roleSurfaces = {
     actions: Array<{ icon: LucideIcon; title: string; description: string }>;
   }
 >;
+
+const paymentMethods: Array<{
+  id: PaymentMethod;
+  label: string;
+  detail: string;
+  icon: LucideIcon;
+}> = [
+  {
+    id: "upi",
+    label: "UPI",
+    detail: "paytmupi",
+    icon: QrCode
+  },
+  {
+    id: "wallet",
+    label: "Wallet",
+    detail: "Balance ready",
+    icon: Wallet
+  },
+  {
+    id: "card",
+    label: "Card",
+    detail: "Visa ending 4242",
+    icon: CreditCard
+  },
+  {
+    id: "netbanking",
+    label: "Netbanking",
+    detail: "All banks",
+    icon: Landmark
+  }
+];
 
 export function HomeScreen({
   session: initialSession,
@@ -739,31 +774,77 @@ function RoleWorkspace({
 
 function BuyerMarketplace({ sellers }: { sellers: MerchantSellerSummary[] }) {
   const [selectedSeller, setSelectedSeller] = useState<MerchantSellerSummary | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<SimulatedProduct | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<SellerProduct | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("upi");
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("idle");
+  const [paymentReference, setPaymentReference] = useState("");
+  const [upiHandle, setUpiHandle] = useState("rajdeepvp273-1@oksbi");
   const [bookingMessage, setBookingMessage] = useState<string | null>(null);
-  const products = selectedSeller ? getSimulatedProducts(selectedSeller) : [];
-  const total = selectedProduct ? selectedProduct.price * quantity : 0;
+  const products = selectedSeller?.products ?? [];
+  const unitPrice = selectedProduct ? getProductUnitPrice(selectedProduct) : null;
+  const total = unitPrice === null ? null : unitPrice * quantity;
+  const paymentAmount = total === null ? null : formatMoney(total);
+
+  useEffect(() => {
+    if (!isPaymentOpen || paymentStatus !== "processing" || !selectedSeller || !selectedProduct) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      setPaymentStatus("success");
+      setBookingMessage(
+        `Payment successful at ${selectedSeller.storeName}: ${quantity} x ${selectedProduct.name} for ${
+          total === null ? "store-confirmed pricing" : `Rs.${formatMoney(total)}`
+        }. Ref ${paymentReference}.`
+      );
+    }, 1500);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    isPaymentOpen,
+    paymentReference,
+    paymentStatus,
+    quantity,
+    selectedProduct,
+    selectedSeller,
+    total
+  ]);
 
   function openSeller(seller: MerchantSellerSummary) {
     setSelectedSeller(seller);
     setSelectedProduct(null);
     setQuantity(1);
+    closePaymentGateway();
     setBookingMessage(null);
   }
 
-  function openProduct(product: SimulatedProduct) {
+  function openProduct(product: SellerProduct) {
     setSelectedProduct(product);
     setQuantity(1);
+    closePaymentGateway();
     setBookingMessage(null);
   }
 
-  function bookOrder() {
+  function openPaymentGateway() {
     if (!selectedSeller || !selectedProduct) return;
 
-    setBookingMessage(
-      `Order booked at ${selectedSeller.storeName}: ${quantity} x ${selectedProduct.name} for Rs.${total}. Payment simulated.`
-    );
+    setPaymentReference(createPaymentReference());
+    setPaymentStatus("idle");
+    setIsPaymentOpen(true);
+    setBookingMessage(null);
+  }
+
+  function closePaymentGateway() {
+    setIsPaymentOpen(false);
+    setPaymentStatus("idle");
+  }
+
+  function completePayment() {
+    if (!selectedSeller || !selectedProduct || paymentStatus !== "idle") return;
+
+    setPaymentStatus("processing");
   }
 
   return (
@@ -772,7 +853,7 @@ function BuyerMarketplace({ sellers }: { sellers: MerchantSellerSummary[] }) {
         <div>
           <p className="panel-title">Nearby sellers</p>
           <p className="panel-copy">
-            Real sellers are loaded from the merchant database. Products are sample data for now.
+            Sellers and products are loaded from the merchant database.
           </p>
         </div>
         <div className="status-item">
@@ -802,6 +883,7 @@ function BuyerMarketplace({ sellers }: { sellers: MerchantSellerSummary[] }) {
                   <span className="role-copy">
                     {seller.storeTimings} - {merchantFulfillmentTypeLabels[seller.fulfillmentType]}
                   </span>
+                  <span className="role-copy">{seller.products.length} products</span>
                 </span>
                 <ChevronRight aria-hidden="true" size={18} />
               </button>
@@ -818,6 +900,7 @@ function BuyerMarketplace({ sellers }: { sellers: MerchantSellerSummary[] }) {
               onClick={() => {
                 setSelectedSeller(null);
                 setSelectedProduct(null);
+                closePaymentGateway();
                 setBookingMessage(null);
               }}
               type="button"
@@ -834,34 +917,42 @@ function BuyerMarketplace({ sellers }: { sellers: MerchantSellerSummary[] }) {
             </div>
           </div>
 
-          <div className="product-grid">
-            {products.map((product) => (
-              <button
-                className={`product-card ${selectedProduct?.id === product.id ? "selected" : ""}`}
-                key={product.id}
-                onClick={() => openProduct(product)}
-                type="button"
-              >
-                <PackageSearch aria-hidden="true" size={20} />
-                <span>
-                  <span className="role-title">{product.name}</span>
-                  <span className="role-copy">{product.description}</span>
-                  <span className="product-price">Rs.{product.price} / {product.unit}</span>
-                </span>
-              </button>
-            ))}
-          </div>
+          {products.length ? (
+            <div className="product-grid">
+              {products.map((product) => (
+                <button
+                  className={`product-card ${selectedProduct?.id === product.id ? "selected" : ""}`}
+                  key={product.id}
+                  onClick={() => openProduct(product)}
+                  type="button"
+                >
+                  <PackageSearch aria-hidden="true" size={20} />
+                  <span>
+                    <span className="role-title">{product.name}</span>
+                    <span className="role-copy">{getProductDescription(product)}</span>
+                    <span className="product-price">{formatProductPrice(product)}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="helper">No products found for this seller.</p>
+          )}
 
           {selectedProduct ? (
             <div className="booking-panel">
               <div>
                 <p className="panel-title">{selectedProduct.name}</p>
-                <p className="panel-copy">Choose quantity and book. Payment is simulated for now.</p>
+                <p className="panel-copy">{getProductDescription(selectedProduct)}</p>
               </div>
               <div className="quantity-row">
                 <button
                   className="icon-button"
-                  onClick={() => setQuantity((current) => Math.max(1, current - 1))}
+                  onClick={() => {
+                    setQuantity((current) => Math.max(1, current - 1));
+                    closePaymentGateway();
+                    setBookingMessage(null);
+                  }}
                   type="button"
                   aria-label="Decrease quantity"
                 >
@@ -870,7 +961,11 @@ function BuyerMarketplace({ sellers }: { sellers: MerchantSellerSummary[] }) {
                 <span className="quantity-value">{quantity}</span>
                 <button
                   className="icon-button"
-                  onClick={() => setQuantity((current) => current + 1)}
+                  onClick={() => {
+                    setQuantity((current) => current + 1);
+                    closePaymentGateway();
+                    setBookingMessage(null);
+                  }}
                   type="button"
                   aria-label="Increase quantity"
                 >
@@ -879,14 +974,33 @@ function BuyerMarketplace({ sellers }: { sellers: MerchantSellerSummary[] }) {
               </div>
               <div className="status-item">
                 <span className="status-label">Total</span>
-                <span className="status-value">Rs.{total}</span>
+                <span className="status-value">
+                  {total === null ? "Confirm at store" : `Rs.${formatMoney(total)}`}
+                </span>
               </div>
-              <button className="primary-button" onClick={bookOrder} type="button">
+              <button className="primary-button" onClick={openPaymentGateway} type="button">
                 <CreditCard aria-hidden="true" size={18} />
-                Simulate payment
+                Buy now
               </button>
               {bookingMessage ? <p className="success-message">{bookingMessage}</p> : null}
             </div>
+          ) : null}
+
+          {isPaymentOpen && selectedSeller && selectedProduct ? (
+            <PaymentGatewayModal
+              amount={paymentAmount}
+              method={paymentMethod}
+              onClose={closePaymentGateway}
+              onMethodChange={setPaymentMethod}
+              onPay={completePayment}
+              product={selectedProduct}
+              quantity={quantity}
+              reference={paymentReference}
+              seller={selectedSeller}
+              status={paymentStatus}
+              upiHandle={upiHandle}
+              onUpiHandleChange={setUpiHandle}
+            />
           ) : null}
         </>
       )}
@@ -894,54 +1008,254 @@ function BuyerMarketplace({ sellers }: { sellers: MerchantSellerSummary[] }) {
   );
 }
 
-function getSimulatedProducts(seller: MerchantSellerSummary): SimulatedProduct[] {
-  const catalogs: Record<MerchantBusinessType, SimulatedProduct[]> = {
-    kirana: [
-      { id: "rice", name: "Basmati Rice", price: 95, unit: "kg", description: "Daily grocery staple" },
-      { id: "milk", name: "Amul Milk", price: 28, unit: "pack", description: "Fresh dairy pack" },
-      { id: "maggi", name: "Maggi Noodles", price: 14, unit: "pack", description: "Instant snack" }
-    ],
-    restaurant: [
-      { id: "thali", name: "Veg Thali", price: 140, unit: "plate", description: "Lunch meal" },
-      { id: "biryani", name: "Biryani", price: 180, unit: "box", description: "Fresh prepared meal" },
-      { id: "tea", name: "Masala Tea", price: 20, unit: "cup", description: "Hot beverage" }
-    ],
-    pharmacy: [
-      { id: "sanitizer", name: "Hand Sanitizer", price: 60, unit: "bottle", description: "Daily hygiene" },
-      { id: "bandage", name: "Bandage Pack", price: 35, unit: "pack", description: "First-aid supply" },
-      { id: "vitamin", name: "Vitamin C", price: 120, unit: "strip", description: "Health supplement" }
-    ],
-    salon: [
-      { id: "haircut", name: "Haircut", price: 180, unit: "slot", description: "Service booking" },
-      { id: "shave", name: "Shave", price: 80, unit: "slot", description: "Grooming service" },
-      { id: "facial", name: "Facial", price: 450, unit: "slot", description: "Skin care service" }
-    ],
-    electronics: [
-      { id: "charger", name: "USB-C Charger", price: 499, unit: "piece", description: "Fast charging adapter" },
-      { id: "earphones", name: "Earphones", price: 699, unit: "piece", description: "Wired audio" },
-      { id: "cable", name: "Charging Cable", price: 199, unit: "piece", description: "Mobile accessory" }
-    ],
-    stationery: [
-      { id: "notebook", name: "Notebook", price: 60, unit: "piece", description: "Ruled pages" },
-      { id: "pen", name: "Ball Pen", price: 10, unit: "piece", description: "Blue ink" },
-      { id: "files", name: "File Folder", price: 25, unit: "piece", description: "Document storage" }
-    ],
-    fashion: [
-      { id: "tshirt", name: "Cotton T-shirt", price: 399, unit: "piece", description: "Casual wear" },
-      { id: "cap", name: "Cap", price: 249, unit: "piece", description: "Daily accessory" },
-      { id: "socks", name: "Socks", price: 99, unit: "pair", description: "Comfort pair" }
-    ],
-    services: [
-      { id: "repair", name: "Basic Repair", price: 250, unit: "visit", description: "Service visit" },
-      { id: "cleaning", name: "Cleaning", price: 300, unit: "slot", description: "Home service" },
-      { id: "consult", name: "Consultation", price: 150, unit: "call", description: "Quick help" }
-    ],
-    other: [
-      { id: "custom", name: "Custom Item", price: 100, unit: "item", description: "Sample product" },
-      { id: "starter", name: "Starter Pack", price: 250, unit: "pack", description: "Sample bundle" },
-      { id: "booking", name: "Booking Slot", price: 150, unit: "slot", description: "Sample service" }
-    ]
-  };
+function PaymentGatewayModal({
+  amount,
+  method,
+  onClose,
+  onMethodChange,
+  onPay,
+  onUpiHandleChange,
+  product,
+  quantity,
+  reference,
+  seller,
+  status,
+  upiHandle
+}: {
+  amount: string | null;
+  method: PaymentMethod;
+  onClose: () => void;
+  onMethodChange: (method: PaymentMethod) => void;
+  onPay: () => void;
+  onUpiHandleChange: (value: string) => void;
+  product: SellerProduct;
+  quantity: number;
+  reference: string;
+  seller: MerchantSellerSummary;
+  status: PaymentStatus;
+  upiHandle: string;
+}) {
+  const selectedMethod = paymentMethods.find((item) => item.id === method) ?? paymentMethods[0];
+  const SelectedIcon = selectedMethod.icon;
+  const payableAmount = amount ? `Rs.${amount}` : "Confirm at store";
+  const canPay = Boolean(amount) && status === "idle";
 
-  return catalogs[seller.businessType];
+  return (
+    <div className="payment-overlay" role="presentation">
+      <div
+        aria-labelledby="payment-title"
+        aria-modal="true"
+        className="payment-sheet"
+        role="dialog"
+      >
+        <div className="payment-brandbar">
+          <div className="payment-brand">
+            <span className="payment-logo" aria-hidden="true">
+              <span>Pay</span>
+              <span>tm</span>
+            </span>
+          </div>
+          <button
+            aria-label="Close payment gateway"
+            className="payment-close"
+            disabled={status === "processing"}
+            onClick={onClose}
+            type="button"
+          >
+            <X aria-hidden="true" size={18} />
+          </button>
+        </div>
+
+        <div className="payment-body">
+          <section className="payment-summary" aria-label="Order summary">
+            <div>
+              <p className="payment-label">Paying to</p>
+              <h2 id="payment-title">{seller.storeName}</h2>
+              <p className="payment-muted">
+                {quantity} x {product.name}
+              </p>
+            </div>
+            <div className="payment-amount">
+              <span>Amount</span>
+              <strong>{payableAmount}</strong>
+            </div>
+          </section>
+
+          <section className="payment-methods" aria-label="Payment methods">
+            {paymentMethods.map((item) => {
+              const Icon = item.icon;
+              const isSelected = method === item.id;
+
+              return (
+                <button
+                  aria-pressed={isSelected}
+                  className={`payment-method ${isSelected ? "selected" : ""}`}
+                  disabled={status !== "idle"}
+                  key={item.id}
+                  onClick={() => onMethodChange(item.id)}
+                  type="button"
+                >
+                  <Icon aria-hidden="true" size={18} />
+                  <span>
+                    <strong>{item.label}</strong>
+                    <small>{item.detail}</small>
+                  </span>
+                </button>
+              );
+            })}
+          </section>
+
+          <section className="payment-instrument" aria-label="Selected payment instrument">
+            {status === "success" ? (
+              <div className="payment-success">
+                <span className="payment-success-icon">
+                  <CheckCircle2 aria-hidden="true" size={28} />
+                </span>
+                <div>
+                  <p className="payment-label">Payment successful</p>
+                  <strong>{reference}</strong>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="payment-instrument-head">
+                  <span className="payment-instrument-icon">
+                    <SelectedIcon aria-hidden="true" size={22} />
+                  </span>
+                  <div>
+                    <p className="payment-label">{selectedMethod.label}</p>
+                    <strong>{getPaymentMethodTitle(method)}</strong>
+                  </div>
+                </div>
+
+                {method === "upi" ? (
+                  <div className="payment-upi-grid">
+                    <div className="payment-qr" aria-hidden="true">
+                      <span />
+                      <span />
+                      <span />
+                      <span />
+                    </div>
+                    <label className="payment-field">
+                      <span>UPI ID</span>
+                      <input
+                        disabled={status !== "idle"}
+                        onChange={(event) => onUpiHandleChange(event.target.value)}
+                        value={upiHandle}
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <div className="payment-token-card">
+                    <span>{getPaymentMethodPrimaryLine(method)}</span>
+                    <strong>{getPaymentMethodSecondaryLine(method)}</strong>
+                  </div>
+                )}
+
+                <div className="payment-security-row">
+                  <ShieldCheck aria-hidden="true" size={16} />
+                  <span>Secured with Paytm authentication</span>
+                </div>
+              </>
+            )}
+          </section>
+
+          <div className="payment-actions">
+            <button
+              className="secondary-button"
+              disabled={status === "processing"}
+              onClick={onClose}
+              type="button"
+            >
+              {status === "success" ? "Close" : "Cancel"}
+            </button>
+            <button
+              className="payment-pay-button"
+              disabled={!canPay}
+              onClick={onPay}
+              type="button"
+            >
+              {status === "processing" ? (
+                <>
+                  <LoaderCircle aria-hidden="true" className="payment-spinner" size={18} />
+                  Processing
+                </>
+              ) : status === "success" ? (
+                <>
+                  <CheckCircle2 aria-hidden="true" size={18} />
+                  Paid
+                </>
+              ) : amount ? (
+                <>
+                  <Smartphone aria-hidden="true" size={18} />
+                  Pay Rs.{amount}
+                </>
+              ) : (
+                "Amount unavailable"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function getProductDescription(product: SellerProduct) {
+  const quantity =
+    typeof product.quantity === "number"
+      ? `${formatMoney(product.quantity)}${product.unit ? ` ${product.unit}` : ""} available`
+      : null;
+  const details = [product.category, product.packSize, quantity].filter(Boolean);
+
+  return details.length ? details.join(" - ") : "Merchant product";
+}
+
+function formatProductPrice(product: SellerProduct) {
+  const price = product.price?.trim();
+  const unit = product.unit?.trim();
+
+  if (!price) {
+    return "Price unavailable";
+  }
+
+  return unit ? `${price} / ${unit}` : price;
+}
+
+function getProductUnitPrice(product: SellerProduct) {
+  const price = product.price?.trim();
+  if (!price) return null;
+
+  const currencyMatch = price.match(/(?:rs\.?|inr|\u20b9)\s*([0-9]+(?:\.[0-9]+)?)/i);
+  const fallbackMatch = price.match(/([0-9]+(?:\.[0-9]+)?)/);
+  const amount = currencyMatch?.[1] ?? fallbackMatch?.[1];
+
+  return amount ? Number(amount) : null;
+}
+
+function formatMoney(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, "");
+}
+
+function getPaymentMethodTitle(method: PaymentMethod) {
+  if (method === "upi") return "Scan or approve UPI collect";
+  if (method === "wallet") return "Paytm wallet balance";
+  if (method === "card") return "Saved card";
+  return "Bank authentication";
+}
+
+function getPaymentMethodPrimaryLine(method: PaymentMethod) {
+  if (method === "wallet") return "Available wallet balance";
+  if (method === "card") return "Saved Visa card";
+  return "Preferred bank";
+}
+
+function getPaymentMethodSecondaryLine(method: PaymentMethod) {
+  if (method === "wallet") return "Rs.12,450";
+  if (method === "card") return "**** **** **** 4242";
+  return "HDFC Bank";
+}
+
+function createPaymentReference() {
+  return `PTM${Date.now().toString().slice(-8)}${Math.floor(Math.random() * 90 + 10)}`;
 }
