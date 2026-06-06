@@ -1,7 +1,5 @@
 export const onboardingStages = [
   "idle",
-  "kyc_prompt",
-  "kyc_scanning",
   "inventory_prompt",
   "inventory_scanning",
   "export_ready"
@@ -9,7 +7,7 @@ export const onboardingStages = [
 
 export type OnboardingStage = (typeof onboardingStages)[number];
 
-export type OnboardingExtractionStage = "kyc" | "inventory";
+export type OnboardingExtractionStage = "inventory";
 
 export type TranscriptEntry = {
   id: string;
@@ -25,29 +23,13 @@ export type SourceFrame = {
   capturedAt: string;
 };
 
-export type KycFields = {
-  name?: string | null;
-  aadhaarNumber?: string | null;
-  dateOfBirth?: string | null;
-  gender?: string | null;
-  address?: string | null;
-  issuer?: string | null;
-};
-
-export type KycExtraction = {
-  documentType: string;
-  rawOcrText: string;
-  fields: KycFields;
-  confidence: number;
-  isComplete: boolean;
-  warnings?: string[];
-};
-
 export type InventoryItem = {
   id: string;
   name: string;
+  category?: string | null;
   quantity?: number | null;
   unit?: string | null;
+  packSize?: string | null;
   price?: string | null;
   evidence: {
     visual?: string | null;
@@ -67,7 +49,6 @@ export type InventoryExtraction = {
 export type StorefrontExport = {
   id: string;
   createdAt: string;
-  kyc: KycExtraction | null;
   inventory: InventoryItem[];
   transcript: TranscriptEntry[];
   sourceFrames: SourceFrame[];
@@ -78,13 +59,11 @@ export type OnboardingExtractionRequest = {
   frameBase64: string;
   transcript: string;
   previousState?: {
-    kyc?: KycExtraction | null;
     inventory?: InventoryItem[];
   };
 };
 
 export type OnboardingExtractionResponse = {
   stage: OnboardingExtractionStage;
-  kyc?: KycExtraction;
   inventory?: InventoryExtraction;
 };

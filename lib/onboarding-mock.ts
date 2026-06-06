@@ -1,28 +1,8 @@
 import type {
   InventoryExtraction,
-  KycExtraction,
   OnboardingExtractionResponse,
   OnboardingExtractionStage
 } from "@/lib/types";
-
-export function getMockKycExtraction(): KycExtraction {
-  return {
-    documentType: "Aadhaar card",
-    rawOcrText:
-      "Mock OCR: Government of India Aadhaar sample. Name: Ramesh Kumar. DOB: 1988. Aadhaar number visible in the demo frame.",
-    fields: {
-      name: "Ramesh Kumar",
-      aadhaarNumber: "XXXX XXXX 1234",
-      dateOfBirth: "1988",
-      gender: "Male",
-      address: "Demo address from mock OCR",
-      issuer: "Government of India"
-    },
-    confidence: 0.82,
-    isComplete: true,
-    warnings: ["Mock KYC data. This is not official verification."]
-  };
-}
 
 export function getMockInventoryExtraction(): InventoryExtraction {
   return {
@@ -30,8 +10,10 @@ export function getMockInventoryExtraction(): InventoryExtraction {
       {
         id: "maggi-70g",
         name: "Maggi 2-Minute Noodles",
+        category: "Packaged food",
         quantity: 24,
         unit: "packets",
+        packSize: "70g",
         price: "₹14",
         evidence: {
           visual: "Yellow Maggi packs visible on shelf.",
@@ -42,8 +24,10 @@ export function getMockInventoryExtraction(): InventoryExtraction {
       {
         id: "amul-taaza-500ml",
         name: "Amul Taaza",
+        category: "Dairy",
         quantity: 12,
         unit: "packets",
+        packSize: "500ml",
         price: "₹28",
         evidence: {
           visual: "Amul milk packets visible.",
@@ -60,13 +44,6 @@ export function getMockInventoryExtraction(): InventoryExtraction {
 }
 
 export function getMockOnboardingExtraction(stage: OnboardingExtractionStage): OnboardingExtractionResponse {
-  if (stage === "kyc") {
-    return {
-      stage,
-      kyc: getMockKycExtraction()
-    };
-  }
-
   return {
     stage,
     inventory: getMockInventoryExtraction()

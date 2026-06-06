@@ -6,8 +6,7 @@ const realtimeInstructions = `You are the voice layer for a merchant onboarding 
 
 The app controls the onboarding stages and may ask you to say exact scripted prompts.
 Keep all spontaneous responses short and helpful.
-Guide the user through KYC and inventory capture only.
-Never claim Aadhaar/KYC is officially verified.
+Guide the user through product inventory capture only.
 When asked to speak exact text, say only that text.`;
 
 function getRealtimeModel() {
@@ -54,7 +53,7 @@ export async function GET() {
             transcription: {
               model: "whisper-1",
               language: "en",
-              prompt: "Merchant onboarding conversation about Aadhaar KYC and shop inventory."
+              prompt: "Merchant onboarding conversation about shop product inventory."
             },
             turn_detection: {
               type: "server_vad",

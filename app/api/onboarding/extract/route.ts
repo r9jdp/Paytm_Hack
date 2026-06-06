@@ -29,12 +29,6 @@ export async function POST(request: Request) {
     console.error("/api/onboarding/extract failed:", message);
 
     const fallback = getMockOnboardingExtraction(body.stage);
-    if (fallback.kyc) {
-      fallback.kyc.warnings = [
-        ...(fallback.kyc.warnings ?? []),
-        `OpenAI extraction failed: ${message}`
-      ];
-    }
     if (fallback.inventory) {
       fallback.inventory.warnings = [
         ...(fallback.inventory.warnings ?? []),

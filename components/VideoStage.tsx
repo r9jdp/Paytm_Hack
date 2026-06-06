@@ -113,7 +113,7 @@ export const VideoStage = forwardRef<VideoStageHandle, VideoStageProps>(function
       {!isRunning ? (
         <div className={styles.videoIdle}>
           <Camera aria-hidden="true" size={42} />
-          <span>One video frame for KYC and inventory</span>
+          <span>One video frame for product inventory</span>
         </div>
       ) : null}
 

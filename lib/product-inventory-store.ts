@@ -1,0 +1,75 @@
+import { randomUUID } from "node:crypto";
+
+import { getPool } from "@/lib/auth-user-store";
+import type { InventoryItem } from "@/lib/types";
+
+export type ProductInventoryInput = {
+  exportId: string;
+  products: InventoryItem[];
+  userId?: string | null;
+};
+
+export async function replaceProductsForExport({
+  exportId,
+  products,
+  userId
+}: ProductInventoryInput) {
+  const client = await getPool().connect();
+  const cleanedProducts = products.filter((product) => product.name.trim());
+
+  try {
+    await client.query("begin");
+    await client.query('delete from "products" where "exportId" = $1', [exportId]);
+
+    for (const product of cleanedProducts) {
+      await client.query(
+        `
+          insert into "products" (
+            "id",
+            "userId",
+            "exportId",
+            "name",
+            "category",
+            "quantity",
+            "unit",
+            "packSize",
+            "price",
+            "confidence",
+            "evidenceVisual",
+            "evidenceVoice",
+            "rawItem",
+            "createdAt",
+            "updatedAt"
+          )
+          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb, now(), now())
+        `,
+        [
+          `prd_${randomUUID()}`,
+          userId ?? null,
+          exportId,
+          product.name.trim(),
+          product.category ?? null,
+          typeof product.quantity === "number" ? product.quantity : null,
+          product.unit ?? null,
+          product.packSize ?? null,
+          product.price ?? null,
+          product.confidence,
+          product.evidence.visual ?? null,
+          product.evidence.voice ?? null,
+          JSON.stringify(product)
+        ]
+      );
+    }
+
+    await client.query("commit");
+
+    return {
+      saved: cleanedProducts.length
+    };
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
+}

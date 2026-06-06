@@ -1,44 +1,11 @@
 import OpenAI from "openai";
 
-import {
-  sanitizeInventoryItems,
-  sanitizeKycExtraction
-} from "@/lib/onboarding-validation";
+import { sanitizeInventoryItems } from "@/lib/onboarding-validation";
 import type {
   InventoryExtraction,
-  KycExtraction,
   OnboardingExtractionRequest,
   OnboardingExtractionResponse
 } from "@/lib/types";
-
-const kycSchema = {
-  type: "object",
-  additionalProperties: false,
-  required: ["documentType", "rawOcrText", "fields", "confidence", "isComplete", "warnings"],
-  properties: {
-    documentType: { type: "string" },
-    rawOcrText: { type: "string" },
-    fields: {
-      type: "object",
-      additionalProperties: false,
-      required: ["name", "aadhaarNumber", "dateOfBirth", "gender", "address", "issuer"],
-      properties: {
-        name: { type: ["string", "null"] },
-        aadhaarNumber: { type: ["string", "null"] },
-        dateOfBirth: { type: ["string", "null"] },
-        gender: { type: ["string", "null"] },
-        address: { type: ["string", "null"] },
-        issuer: { type: ["string", "null"] }
-      }
-    },
-    confidence: { type: "number" },
-    isComplete: { type: "boolean" },
-    warnings: {
-      type: "array",
-      items: { type: "string" }
-    }
-  }
-};
 
 const inventorySchema = {
   type: "object",
@@ -50,12 +17,14 @@ const inventorySchema = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["id", "name", "quantity", "unit", "price", "evidence", "confidence"],
+        required: ["id", "name", "category", "quantity", "unit", "packSize", "price", "evidence", "confidence"],
         properties: {
           id: { type: "string" },
           name: { type: "string" },
+          category: { type: ["string", "null"] },
           quantity: { type: ["number", "null"] },
           unit: { type: ["string", "null"] },
+          packSize: { type: ["string", "null"] },
           price: { type: ["string", "null"] },
           evidence: {
             type: "object",
@@ -80,23 +49,13 @@ const inventorySchema = {
   }
 };
 
-const kycInstruction = `You extract KYC OCR from a camera frame for a prototype onboarding demo.
-
-Rules:
-- This is not official KYC verification.
-- Read all visible text carefully and return the full raw OCR text.
-- If the document appears to be an Aadhaar card, set documentType to "Aadhaar card".
-- Do not invent Aadhaar numbers, names, dates, or addresses.
-- If the frame is unclear, return isComplete false and say what is missing in warnings.
-- Mark isComplete true only when Aadhaar-like identity text and at least one useful identity field are visible.`;
-
 const inventoryInstruction = `You extract store inventory from a camera frame plus spoken transcript.
 
 Rules:
 - Merge visible product labels with spoken quantities.
 - Do not invent products, quantities, prices, brands, or pack sizes.
 - Prefer the transcript for quantity and unit.
-- Prefer the frame for product names, packaging, and visible prices.
+- Prefer the frame for product names, categories, packaging, pack sizes, and visible prices.
 - If price is not visible or spoken, return null.
 - Mark isComplete true when at least one inventory item has a name and quantity, or when the transcript says the user is done.`;
 
@@ -115,43 +74,6 @@ function parseJsonObject(outputText: string) {
   } catch {
     return null;
   }
-}
-
-export async function extractKyc(body: OnboardingExtractionRequest): Promise<KycExtraction> {
-  const response = await createClient().responses.create({
-    model: process.env.OPENAI_VISION_MODEL || "gpt-4.1-mini",
-    temperature: 0.05,
-    input: [
-      {
-        role: "system",
-        content: [{ type: "input_text", text: kycInstruction }]
-      },
-      {
-        role: "user",
-        content: [
-          {
-            type: "input_text",
-            text: [
-              "Extract KYC OCR from this current frame.",
-              `Voice transcript so far: ${body.transcript || "(none)"}`,
-              "Return only the requested JSON shape."
-            ].join("\n")
-          },
-          { type: "input_image", image_url: body.frameBase64, detail: "high" }
-        ]
-      }
-    ],
-    text: {
-      format: {
-        type: "json_schema",
-        name: "kyc_ocr",
-        strict: true,
-        schema: kycSchema
-      }
-    }
-  });
-
-  return sanitizeKycExtraction(parseJsonObject(response.output_text ?? ""));
 }
 
 export async function extractInventory(body: OnboardingExtractionRequest): Promise<InventoryExtraction> {
@@ -207,13 +129,6 @@ export async function extractInventory(body: OnboardingExtractionRequest): Promi
 export async function extractOnboardingFrame(
   body: OnboardingExtractionRequest
 ): Promise<OnboardingExtractionResponse> {
-  if (body.stage === "kyc") {
-    return {
-      stage: "kyc",
-      kyc: await extractKyc(body)
-    };
-  }
-
   return {
     stage: "inventory",
     inventory: await extractInventory(body)

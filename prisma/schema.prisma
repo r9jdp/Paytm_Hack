@@ -41,6 +41,7 @@ model User {
   sessions         Session[]
   authenticators   Authenticator[]
   merchantIdentity MerchantIdentity?
+  products         Product[]
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 }
@@ -64,6 +65,30 @@ model MerchantIdentity {
   updatedAt         DateTime                @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Product {
+  id             String   @id
+  userId         String?
+  exportId       String
+  name           String
+  category       String?
+  quantity       Float?
+  unit           String?
+  packSize       String?
+  price          String?
+  confidence     Float
+  evidenceVisual String?  @db.Text
+  evidenceVoice  String?  @db.Text
+  rawItem        Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([exportId])
+  @@index([userId])
+  @@map("products")
 }
 
 model Account {

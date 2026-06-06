@@ -81,7 +81,7 @@ const roleOptions: Array<{
   {
     role: "merchant",
     title: "Merchant",
-    description: "Start voice-led KYC and inventory onboarding.",
+    description: "Start voice-led product inventory onboarding.",
     icon: Store
   },
   {
@@ -96,12 +96,12 @@ const roleSurfaces = {
   merchant: {
     title: "Voice merchant onboarding",
     eyebrow: "Merchant mode",
-    description: "Use one camera and voice flow to capture prototype KYC OCR, inventory, and a local storefront JSON.",
+    description: "Use one camera and voice flow to capture product inventory and a local storefront JSON.",
     actions: [
       {
         icon: Camera,
         title: "Live video frame",
-        description: "Start once, then show Aadhaar and products in the same guided camera view."
+        description: "Start once, then show products in the guided camera view."
       },
       {
         icon: ScanLine,
@@ -111,7 +111,7 @@ const roleSurfaces = {
       {
         icon: CheckCircle2,
         title: "Local export",
-        description: "KYC OCR, inventory, transcripts, and thumbnails stay in this browser."
+        description: "Inventory, transcripts, and thumbnails stay in this browser."
       }
     ]
   },
