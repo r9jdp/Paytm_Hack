@@ -2,7 +2,7 @@
 
 Next.js PWA starter with Google login, buyer/merchant role onboarding, durable role persistence, and a server-only OpenAI Realtime session endpoint for future vision work.
 
-It now includes a standalone Point & Ask AI product at `/gemini`. The route is unauthenticated and focused on camera-based visual Q&A: start the camera, ask a question, auto-capture the current frame, answer with server-side OpenAI vision, and save local history in IndexedDB. Merchant role selection opens this same working product.
+It now includes a standalone voice-led onboarding product at `/gemini`. The route starts one live video frame, speaks the merchant through KYC and inventory capture, extracts Aadhaar OCR and inventory with server-side OpenAI vision, stores the prototype capture locally in IndexedDB, and generates a storefront JSON export. Merchant role selection opens this same working product.
 
 ## Stack
 
@@ -10,7 +10,8 @@ It now includes a standalone Point & Ask AI product at `/gemini`. The route is u
 - Auth.js / NextAuth Google OAuth
 - Prisma with PostgreSQL
 - Manual PWA manifest and service worker
-- Server route for OpenAI vision Q&A
+- Server route for OpenAI vision extraction
+- Server route for OpenAI Realtime voice credentials
 - Server route for OpenAI Realtime client secrets
 
 ## Setup
@@ -21,31 +22,33 @@ It now includes a standalone Point & Ask AI product at `/gemini`. The route is u
 4. Run `npm run prisma:migrate -- --name init`.
 5. Run `npm run dev`.
 
-## Point & Ask AI
+## Voice-Led Onboarding
 
-Open `/gemini` directly. This route does not require login, a role, a database record, or any Paytm flow.
+Open `/gemini` directly, or sign in and choose Merchant. This route does not require a database record for the capture itself.
 
-The demo:
+The flow:
 
-1. Starts the browser camera after you tap Start Camera.
-2. Prefers the rear camera on mobile.
-3. Lets you type or speak a question.
-4. Captures the current frame automatically when you tap Ask AI.
-5. Sends the frame and question to `POST /api/ask`.
-6. Shows the answer, observations, and optional detected item table.
-7. Saves the last interactions locally in IndexedDB.
+1. Starts camera and microphone after you tap Start.
+2. Speaks: “Let’s start with your KYC. Please provide some verification by showing your Aadhaar card.”
+3. Captures frames automatically and sends them to `POST /api/onboarding/extract` for KYC OCR.
+4. Stores full OCR locally in IndexedDB for this prototype.
+5. Speaks: “Got it. Let’s get your inventory...”
+6. Captures product frames and voice transcript automatically, merging visible labels with spoken quantities.
+7. Speaks: “Ok, creating your storefront.”
+8. Generates a local JSON export. It does not publish a public storefront in v1.
 
-If `OPENAI_API_KEY` is missing or an API call fails, `/api/ask` returns realistic mock answers so the UI remains testable. Set `NEXT_PUBLIC_ENABLE_MOCK_MODE=force` only when you want to skip OpenAI even with a configured key.
+If `OPENAI_API_KEY` is missing or an API call fails, the extraction route returns realistic mock data so the UI remains testable. Set `NEXT_PUBLIC_ENABLE_MOCK_MODE=force` only when you want to skip OpenAI even with a configured key.
 
 Relevant env vars:
 
 ```text
 OPENAI_API_KEY=
 OPENAI_VISION_MODEL=gpt-4.1-mini
+OPENAI_REALTIME_MODEL=gpt-realtime
 NEXT_PUBLIC_ENABLE_MOCK_MODE=true
 ```
 
-`OPENAI_API_KEY` must stay server-side. Manual typing and optional browser speech recognition are the active question input paths.
+`OPENAI_API_KEY` must stay server-side. Realtime voice uses an ephemeral client secret minted by `/api/onboarding/realtime`; if Realtime fails, the app falls back to browser speech recognition and speech synthesis.
 
 ## Google OAuth Credentials
 

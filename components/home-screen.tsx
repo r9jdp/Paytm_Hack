@@ -41,7 +41,7 @@ const roleOptions: Array<{
   {
     role: "merchant",
     title: "Merchant",
-    description: "Open Point & Ask AI for camera-based product help.",
+    description: "Start voice-led KYC and inventory onboarding.",
     icon: Store
   },
   {
@@ -54,24 +54,24 @@ const roleOptions: Array<{
 
 const roleSurfaces = {
   merchant: {
-    title: "Point & Ask AI",
+    title: "Voice merchant onboarding",
     eyebrow: "Merchant mode",
-    description: "Use the working camera assistant to ask questions about products, shelves, labels, and menus.",
+    description: "Use one camera and voice flow to capture prototype KYC OCR, inventory, and a local storefront JSON.",
     actions: [
       {
         icon: Camera,
-        title: "Live camera",
-        description: "Point at any product, shelf, receipt, label, or menu."
+        title: "Live video frame",
+        description: "Start once, then show Aadhaar and products in the same guided camera view."
       },
       {
         icon: ScanLine,
-        title: "Ask by voice or text",
-        description: "Ask what you see, read text, or extract product details."
+        title: "Voice-led capture",
+        description: "The assistant prompts you, listens for quantities, and advances automatically."
       },
       {
         icon: CheckCircle2,
-        title: "Local history",
-        description: "Answers and thumbnails are stored locally for quick review."
+        title: "Local export",
+        description: "KYC OCR, inventory, transcripts, and thumbnails stay in this browser."
       }
     ]
   },
@@ -340,20 +340,20 @@ function RoleWorkspace({ role }: { role: AppRole }) {
           })}
         </div>
 
-        <div className="vision-frame" aria-label="Point and Ask AI workspace">
+        <div className="vision-frame" aria-label="Voice merchant onboarding workspace">
           <div className="vision-frame-copy">
             <Camera aria-hidden="true" size={28} />
-            <span>Point & Ask AI</span>
+            <span>Voice merchant onboarding</span>
           </div>
           {role === "merchant" ? (
             <Link className="primary-button" href="/gemini">
               <ScanLine aria-hidden="true" size={18} />
-              Open Point & Ask AI
+              Start onboarding
             </Link>
           ) : (
             <span className="surface-chip pending">
               <RefreshCw aria-hidden="true" size={14} />
-              Merchant camera assistant only
+              Merchant onboarding only
             </span>
           )}
         </div>

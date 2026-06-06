@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 
-import { PointAskApp } from "@/components/PointAskApp";
+import { OnboardingAgentApp } from "@/components/OnboardingAgentApp";
 
 export const metadata: Metadata = {
-  title: "Point & Ask AI",
-  description: "Ask questions about what your camera sees."
+  title: "Voice-Led Merchant Onboarding",
+  description: "Capture KYC and inventory through one voice-led camera flow."
 };
 
 export default function GeminiPage() {
-  return <PointAskApp />;
+  return <OnboardingAgentApp />;
 }
