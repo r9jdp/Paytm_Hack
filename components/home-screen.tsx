@@ -3,28 +3,54 @@
 import type { Session } from "next-auth";
 import { useSession } from "next-auth/react";
 import {
+  ArrowLeft,
   Camera,
   CheckCircle2,
   ChevronRight,
   CircleDollarSign,
+  Clock,
   Download,
   LogIn,
   LogOut,
+  MapPin,
+  Phone,
   RefreshCw,
   ScanLine,
   ShoppingBag,
-  Store
+  Store,
+  Truck
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { type FormEvent, useEffect, useState, useTransition } from "react";
 
 import { signInWithGoogle, signOutUser } from "@/app/actions";
+import {
+  merchantBusinessTypeLabels,
+  merchantBusinessTypes,
+  merchantFulfillmentTypeLabels,
+  merchantFulfillmentTypes,
+  type MerchantBusinessType,
+  type MerchantFulfillmentType,
+  type MerchantIdentityDefaults,
+  type MerchantIdentitySummary
+} from "@/lib/merchant-options";
 import type { AppRole } from "@/lib/roles";
 
 type HomeScreenProps = {
   session: Session | null;
+  merchantDefaults: MerchantIdentityDefaults | null;
+  merchantIdentity: MerchantIdentitySummary | null;
+};
+
+type MerchantOnboardingPayload = {
+  storeName: string;
+  businessType: MerchantBusinessType;
+  storeTimings: string;
+  fulfillmentType: MerchantFulfillmentType;
+  deliveryRadiusKm: number;
+  minimumOrderValue: number;
 };
 
 type BeforeInstallPromptEvent = Event & {
@@ -107,12 +133,21 @@ const roleSurfaces = {
   }
 >;
 
-export function HomeScreen({ session: initialSession }: HomeScreenProps) {
+export function HomeScreen({
+  session: initialSession,
+  merchantDefaults,
+  merchantIdentity
+}: HomeScreenProps) {
   const { data: clientSession, update } = useSession();
   const session = clientSession ?? initialSession;
   const router = useRouter();
   const [pendingRole, setPendingRole] = useState<AppRole | null>(null);
+  const [submittedMerchantIdentity, setSubmittedMerchantIdentity] =
+    useState<MerchantIdentitySummary | null>(null);
+  const [isMerchantOnboarding, setIsMerchantOnboarding] = useState(false);
+  const [isMerchantSubmitting, setIsMerchantSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [merchantError, setMerchantError] = useState<string | null>(null);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isStandalone] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -121,6 +156,13 @@ export function HomeScreen({ session: initialSession }: HomeScreenProps) {
     return window.matchMedia("(display-mode: standalone)").matches || Boolean(iosNavigator.standalone);
   });
   const [isPending, startTransition] = useTransition();
+
+  const effectiveMerchantIdentity = submittedMerchantIdentity ?? merchantIdentity;
+  const needsMerchantOnboarding =
+    session?.user?.role === "merchant" && !effectiveMerchantIdentity && Boolean(merchantDefaults);
+  const showMerchantOnboarding = Boolean(
+    session?.user && merchantDefaults && (isMerchantOnboarding || needsMerchantOnboarding)
+  );
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (event: Event) => {
@@ -136,8 +178,15 @@ export function HomeScreen({ session: initialSession }: HomeScreenProps) {
   }, []);
 
   async function chooseRole(role: AppRole) {
-    setPendingRole(role);
     setError(null);
+
+    if (role === "merchant") {
+      setMerchantError(null);
+      setIsMerchantOnboarding(true);
+      return;
+    }
+
+    setPendingRole(role);
 
     const response = await fetch("/api/role", {
       method: "POST",
@@ -163,6 +212,41 @@ export function HomeScreen({ session: initialSession }: HomeScreenProps) {
     }
 
     setPendingRole(null);
+  }
+
+  async function completeMerchantOnboarding(payload: MerchantOnboardingPayload) {
+    setMerchantError(null);
+    setIsMerchantSubmitting(true);
+
+    try {
+      const response = await fetch("/api/merchant-onboarding", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const result = (await response.json().catch(() => null)) as {
+        error?: string;
+        merchantIdentity?: MerchantIdentitySummary;
+        role?: AppRole;
+      } | null;
+
+      if (!response.ok || !result?.merchantIdentity) {
+        setMerchantError(result?.error ?? "Could not save merchant onboarding.");
+        return;
+      }
+
+      setSubmittedMerchantIdentity(result.merchantIdentity);
+      await update({ role: "merchant" });
+      setIsMerchantOnboarding(false);
+      startTransition(() => router.refresh());
+    } catch {
+      setMerchantError("Could not save merchant onboarding.");
+    } finally {
+      setIsMerchantSubmitting(false);
+    }
   }
 
   async function installApp() {
@@ -222,7 +306,7 @@ export function HomeScreen({ session: initialSession }: HomeScreenProps) {
               </li>
               <li>
                 <CheckCircle2 aria-hidden="true" size={17} />
-                Role onboarding
+                Merchant onboarding
               </li>
             </ul>
           </div>
@@ -242,8 +326,20 @@ export function HomeScreen({ session: initialSession }: HomeScreenProps) {
                 </div>
               </div>
 
-              {session.user.role ? (
-                <RoleWorkspace role={session.user.role} />
+              {showMerchantOnboarding && merchantDefaults ? (
+                <MerchantOnboarding
+                  canGoBack={!session.user.role}
+                  defaults={merchantDefaults}
+                  error={merchantError}
+                  isSubmitting={isMerchantSubmitting}
+                  onBack={() => setIsMerchantOnboarding(false)}
+                  onSubmit={completeMerchantOnboarding}
+                />
+              ) : session.user.role ? (
+                <RoleWorkspace
+                  merchantIdentity={effectiveMerchantIdentity}
+                  role={session.user.role}
+                />
               ) : (
                 <>
                   <div>
@@ -301,7 +397,223 @@ export function HomeScreen({ session: initialSession }: HomeScreenProps) {
   );
 }
 
-function RoleWorkspace({ role }: { role: AppRole }) {
+function MerchantOnboarding({
+  canGoBack,
+  defaults,
+  error,
+  isSubmitting,
+  onBack,
+  onSubmit
+}: {
+  canGoBack: boolean;
+  defaults: MerchantIdentityDefaults;
+  error: string | null;
+  isSubmitting: boolean;
+  onBack: () => void;
+  onSubmit: (payload: MerchantOnboardingPayload) => Promise<void>;
+}) {
+  const [step, setStep] = useState<1 | 2>(1);
+  const [storeName, setStoreName] = useState("");
+  const [businessType, setBusinessType] = useState<MerchantBusinessType>("kirana");
+  const [storeTimings, setStoreTimings] = useState("8 AM - 10 PM");
+  const [fulfillmentType, setFulfillmentType] = useState<MerchantFulfillmentType>("both");
+  const [deliveryRadiusKm, setDeliveryRadiusKm] = useState("3");
+  const [minimumOrderValue, setMinimumOrderValue] = useState("100");
+  const isStoreStepComplete = storeName.trim().length >= 2;
+
+  async function submitOnboarding(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (step === 1) {
+      if (isStoreStepComplete) {
+        setStep(2);
+      }
+
+      return;
+    }
+
+    await onSubmit({
+      storeName: storeName.trim(),
+      businessType,
+      storeTimings: storeTimings.trim(),
+      fulfillmentType,
+      deliveryRadiusKm: Number(deliveryRadiusKm),
+      minimumOrderValue: Number(minimumOrderValue)
+    });
+  }
+
+  return (
+    <form className="merchant-onboarding" onSubmit={submitOnboarding}>
+      <div className="onboarding-header">
+        <span className="surface-chip">Merchant setup</span>
+        <div>
+          <p className="panel-title">
+            {step === 1 ? "Create your store identity." : "Store operations"}
+          </p>
+          <p className="panel-copy">
+            {step === 1
+              ? "Store name, business type, phone, and Mumbai location are saved to your merchant profile."
+              : "Buyers will use these details for pickup, delivery, and order planning."}
+          </p>
+        </div>
+      </div>
+
+      {step === 1 ? (
+        <>
+          <label className="field">
+            <span>Store Name</span>
+            <input
+              autoFocus
+              onChange={(event) => setStoreName(event.target.value)}
+              placeholder="Enter store name"
+              required
+              value={storeName}
+            />
+          </label>
+
+          <div className="field">
+            <span>What type of business do you run?</span>
+            <div className="choice-grid" role="radiogroup" aria-label="Business type">
+              {merchantBusinessTypes.map((type) => (
+                <button
+                  aria-checked={businessType === type}
+                  className={`choice-button ${businessType === type ? "selected" : ""}`}
+                  key={type}
+                  onClick={() => setBusinessType(type)}
+                  role="radio"
+                  type="button"
+                >
+                  {merchantBusinessTypeLabels[type]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="readonly-grid">
+            <label className="field">
+              <span>
+                <Phone aria-hidden="true" size={16} />
+                Phone Number
+              </span>
+              <input readOnly value={defaults.phoneNumber} />
+            </label>
+            <label className="field">
+              <span>
+                <MapPin aria-hidden="true" size={16} />
+                GPS Location
+              </span>
+              <input readOnly value={defaults.gpsLocation} />
+            </label>
+            <label className="field">
+              <span>City</span>
+              <input readOnly value={defaults.city} />
+            </label>
+            <label className="field">
+              <span>Pincode</span>
+              <input readOnly value={defaults.pincode} />
+            </label>
+          </div>
+        </>
+      ) : (
+        <>
+          <label className="field">
+            <span>
+              <Clock aria-hidden="true" size={16} />
+              Store Timings
+            </span>
+            <input
+              onChange={(event) => setStoreTimings(event.target.value)}
+              placeholder="8 AM - 10 PM"
+              required
+              value={storeTimings}
+            />
+          </label>
+
+          <div className="field">
+            <span>
+              <Truck aria-hidden="true" size={16} />
+              Fulfillment Type
+            </span>
+            <div className="choice-grid compact" role="radiogroup" aria-label="Fulfillment type">
+              {merchantFulfillmentTypes.map((type) => (
+                <button
+                  aria-checked={fulfillmentType === type}
+                  className={`choice-button ${fulfillmentType === type ? "selected" : ""}`}
+                  key={type}
+                  onClick={() => setFulfillmentType(type)}
+                  role="radio"
+                  type="button"
+                >
+                  {merchantFulfillmentTypeLabels[type]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="form-grid">
+            <label className="field">
+              <span>Delivery Radius</span>
+              <input
+                min="0"
+                onChange={(event) => setDeliveryRadiusKm(event.target.value)}
+                placeholder="3"
+                required
+                step="0.5"
+                type="number"
+                value={deliveryRadiusKm}
+              />
+            </label>
+            <label className="field">
+              <span>Minimum Order</span>
+              <input
+                min="0"
+                onChange={(event) => setMinimumOrderValue(event.target.value)}
+                placeholder="100"
+                required
+                step="1"
+                type="number"
+                value={minimumOrderValue}
+              />
+            </label>
+          </div>
+        </>
+      )}
+
+      {error ? <p className="error">{error}</p> : null}
+
+      <div className="form-actions">
+        {step === 2 ? (
+          <button className="secondary-button" type="button" onClick={() => setStep(1)}>
+            <ArrowLeft aria-hidden="true" size={18} />
+            Store details
+          </button>
+        ) : canGoBack ? (
+          <button className="secondary-button" type="button" onClick={onBack}>
+            <ArrowLeft aria-hidden="true" size={18} />
+            Role choice
+          </button>
+        ) : null}
+
+        <button
+          className="primary-button"
+          disabled={isSubmitting || (step === 1 && !isStoreStepComplete)}
+          type="submit"
+        >
+          {step === 1 ? "Next" : isSubmitting ? "Saving..." : "Finish onboarding"}
+          <ChevronRight aria-hidden="true" size={18} />
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function RoleWorkspace({
+  role,
+  merchantIdentity
+}: {
+  role: AppRole;
+  merchantIdentity: MerchantIdentitySummary | null;
+}) {
   const surface = roleSurfaces[role];
 
   return (
@@ -309,13 +621,60 @@ function RoleWorkspace({ role }: { role: AppRole }) {
       <div className="status-board">
         <div>
           <p className="panel-title">You are set up.</p>
-          <p className="panel-copy">Your selected role is stored with your account.</p>
+          <p className="panel-copy">
+            {role === "merchant" && merchantIdentity
+              ? "Your merchant identity and store operations are stored with your account."
+              : "Your selected role is stored with your account."}
+          </p>
         </div>
         <div className="status-item">
           <span className="status-label">Current role</span>
           <span className="status-value">{role}</span>
         </div>
       </div>
+
+      {role === "merchant" && merchantIdentity ? (
+        <div className="merchant-summary" aria-label="Merchant identity">
+          <div className="summary-item">
+            <span className="status-label">Store</span>
+            <span className="status-value">{merchantIdentity.storeName}</span>
+          </div>
+          <div className="summary-item">
+            <span className="status-label">Business</span>
+            <span className="status-value">
+              {merchantBusinessTypeLabels[merchantIdentity.businessType]}
+            </span>
+          </div>
+          <div className="summary-item">
+            <span className="status-label">Timings</span>
+            <span className="status-value">{merchantIdentity.storeTimings}</span>
+          </div>
+          <div className="summary-item">
+            <span className="status-label">Fulfillment</span>
+            <span className="status-value">
+              {merchantFulfillmentTypeLabels[merchantIdentity.fulfillmentType]}
+            </span>
+          </div>
+          <div className="summary-item">
+            <span className="status-label">Delivery</span>
+            <span className="status-value">{merchantIdentity.deliveryRadiusKm} km</span>
+          </div>
+          <div className="summary-item">
+            <span className="status-label">Minimum order</span>
+            <span className="status-value">Rs.{merchantIdentity.minimumOrderValue}</span>
+          </div>
+          <div className="summary-item">
+            <span className="status-label">Phone</span>
+            <span className="status-value">{merchantIdentity.phoneNumber}</span>
+          </div>
+          <div className="summary-item">
+            <span className="status-label">Location</span>
+            <span className="status-value">
+              {merchantIdentity.city} {merchantIdentity.pincode}
+            </span>
+          </div>
+        </div>
+      ) : null}
 
       <section className="role-surface" aria-label={`${surface.title} workspace`}>
         <div className="role-surface-header">
