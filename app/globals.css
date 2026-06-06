@@ -561,6 +561,131 @@ h1 {
   text-transform: none;
 }
 
+.buyer-marketplace,
+.seller-list,
+.booking-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.seller-card,
+.product-card {
+  display: grid;
+  align-items: center;
+  min-width: 0;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  text-align: left;
+}
+
+.seller-card {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 14px;
+}
+
+.seller-card:hover,
+.seller-card:focus-visible,
+.product-card:hover,
+.product-card:focus-visible,
+.product-card.selected {
+  border-color: var(--teal);
+  outline: none;
+  box-shadow: 0 12px 28px rgba(15, 118, 110, 0.12);
+}
+
+.seller-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(47, 128, 237, 0.12);
+  color: var(--sky);
+}
+
+.store-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.product-card {
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  min-height: 132px;
+  padding: 14px;
+}
+
+.product-card svg {
+  color: var(--teal);
+}
+
+.product-price {
+  display: block;
+  margin-top: 8px;
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.booking-panel {
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 8px;
+  padding: 14px;
+  background: #f8fbf8;
+}
+
+.quantity-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon-button {
+  display: inline-grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+}
+
+.icon-button:hover,
+.icon-button:focus-visible {
+  border-color: var(--teal);
+  outline: none;
+}
+
+.quantity-value {
+  min-width: 40px;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 900;
+}
+
+.success-message {
+  margin: 0;
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(15, 118, 110, 0.1);
+  color: var(--teal-strong);
+  font-weight: 800;
+  line-height: 1.45;
+}
+
 @media (max-width: 860px) {
   .workspace {
     grid-template-columns: 1fr;
@@ -588,7 +713,8 @@ h1 {
   .choice-grid.compact,
   .form-grid,
   .readonly-grid,
-  .merchant-summary {
+  .merchant-summary,
+  .product-grid {
     grid-template-columns: 1fr;
   }
 

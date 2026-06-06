@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { HomeScreen } from "@/components/home-screen";
-import { getMerchantIdentityForUser } from "@/lib/merchant-identity-store";
+import { getMerchantIdentityForUser, listMerchantSellers } from "@/lib/merchant-identity-store";
 import { buildMerchantIdentityDefaults } from "@/lib/merchant-options";
 
 export const dynamic = "force-dynamic";
@@ -13,11 +13,13 @@ export default async function Home() {
   const merchantDefaults = session?.user?.id
     ? buildMerchantIdentityDefaults(session.user.id)
     : null;
+  const merchantSellers = await listMerchantSellers().catch(() => []);
 
   return (
     <HomeScreen
       merchantDefaults={merchantDefaults}
       merchantIdentity={merchantIdentity}
+      merchantSellers={merchantSellers}
       session={session}
     />
   );

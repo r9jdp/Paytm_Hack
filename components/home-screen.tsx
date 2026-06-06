@@ -9,11 +9,15 @@ import {
   ChevronRight,
   CircleDollarSign,
   Clock,
+  CreditCard,
   Download,
   LogIn,
   LogOut,
   MapPin,
+  Minus,
+  PackageSearch,
   Phone,
+  Plus,
   RefreshCw,
   ScanLine,
   ShoppingBag,
@@ -36,12 +40,14 @@ import {
   type MerchantIdentityDefaults,
   type MerchantIdentitySummary
 } from "@/lib/merchant-options";
+import type { MerchantSellerSummary } from "@/lib/merchant-identity-store";
 import type { AppRole } from "@/lib/roles";
 
 type HomeScreenProps = {
   session: Session | null;
   merchantDefaults: MerchantIdentityDefaults | null;
   merchantIdentity: MerchantIdentitySummary | null;
+  merchantSellers: MerchantSellerSummary[];
 };
 
 type MerchantOnboardingPayload = {
@@ -56,6 +62,14 @@ type MerchantOnboardingPayload = {
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+};
+
+type SimulatedProduct = {
+  id: string;
+  name: string;
+  price: number;
+  unit: string;
+  description: string;
 };
 
 const roleOptions: Array<{
@@ -136,7 +150,8 @@ const roleSurfaces = {
 export function HomeScreen({
   session: initialSession,
   merchantDefaults,
-  merchantIdentity
+  merchantIdentity,
+  merchantSellers
 }: HomeScreenProps) {
   const { data: clientSession, update } = useSession();
   const session = clientSession ?? initialSession;
@@ -204,9 +219,7 @@ export function HomeScreen({
     }
 
     await update({ role });
-
     startTransition(() => router.refresh());
-
     setPendingRole(null);
   }
 
@@ -334,6 +347,7 @@ export function HomeScreen({
               ) : session.user.role ? (
                 <RoleWorkspace
                   merchantIdentity={effectiveMerchantIdentity}
+                  merchantSellers={merchantSellers}
                   role={session.user.role}
                 />
               ) : (
@@ -605,12 +619,18 @@ function MerchantOnboarding({
 
 function RoleWorkspace({
   role,
-  merchantIdentity
+  merchantIdentity,
+  merchantSellers
 }: {
   role: AppRole;
   merchantIdentity: MerchantIdentitySummary | null;
+  merchantSellers: MerchantSellerSummary[];
 }) {
   const surface = roleSurfaces[role];
+
+  if (role === "buyer") {
+    return <BuyerMarketplace sellers={merchantSellers} />;
+  }
 
   return (
     <div className="role-workspace">
@@ -715,4 +735,213 @@ function RoleWorkspace({
       </section>
     </div>
   );
+}
+
+function BuyerMarketplace({ sellers }: { sellers: MerchantSellerSummary[] }) {
+  const [selectedSeller, setSelectedSeller] = useState<MerchantSellerSummary | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<SimulatedProduct | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [bookingMessage, setBookingMessage] = useState<string | null>(null);
+  const products = selectedSeller ? getSimulatedProducts(selectedSeller) : [];
+  const total = selectedProduct ? selectedProduct.price * quantity : 0;
+
+  function openSeller(seller: MerchantSellerSummary) {
+    setSelectedSeller(seller);
+    setSelectedProduct(null);
+    setQuantity(1);
+    setBookingMessage(null);
+  }
+
+  function openProduct(product: SimulatedProduct) {
+    setSelectedProduct(product);
+    setQuantity(1);
+    setBookingMessage(null);
+  }
+
+  function bookOrder() {
+    if (!selectedSeller || !selectedProduct) return;
+
+    setBookingMessage(
+      `Order booked at ${selectedSeller.storeName}: ${quantity} x ${selectedProduct.name} for Rs.${total}. Payment simulated.`
+    );
+  }
+
+  return (
+    <div className="buyer-marketplace">
+      <div className="status-board">
+        <div>
+          <p className="panel-title">Nearby sellers</p>
+          <p className="panel-copy">
+            Real sellers are loaded from the merchant database. Products are sample data for now.
+          </p>
+        </div>
+        <div className="status-item">
+          <span className="status-label">Current role</span>
+          <span className="status-value">buyer</span>
+        </div>
+      </div>
+
+      {!selectedSeller ? (
+        <div className="seller-list">
+          {sellers.length > 0 ? (
+            sellers.map((seller) => (
+              <button
+                className="seller-card"
+                key={seller.userId}
+                onClick={() => openSeller(seller)}
+                type="button"
+              >
+                <span className="seller-icon">
+                  <Store aria-hidden="true" size={20} />
+                </span>
+                <span>
+                  <span className="role-title">{seller.storeName}</span>
+                  <span className="role-copy">
+                    {merchantBusinessTypeLabels[seller.businessType]} - {seller.city} {seller.pincode}
+                  </span>
+                  <span className="role-copy">
+                    {seller.storeTimings} - {merchantFulfillmentTypeLabels[seller.fulfillmentType]}
+                  </span>
+                </span>
+                <ChevronRight aria-hidden="true" size={18} />
+              </button>
+            ))
+          ) : (
+            <p className="helper">No sellers found yet.</p>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="store-heading">
+            <button
+              className="secondary-button"
+              onClick={() => {
+                setSelectedSeller(null);
+                setSelectedProduct(null);
+                setBookingMessage(null);
+              }}
+              type="button"
+            >
+              <ArrowLeft aria-hidden="true" size={18} />
+              Sellers
+            </button>
+            <div>
+              <p className="panel-title">{selectedSeller.storeName}</p>
+              <p className="panel-copy">
+                {merchantBusinessTypeLabels[selectedSeller.businessType]} - Min order Rs.
+                {selectedSeller.minimumOrderValue}
+              </p>
+            </div>
+          </div>
+
+          <div className="product-grid">
+            {products.map((product) => (
+              <button
+                className={`product-card ${selectedProduct?.id === product.id ? "selected" : ""}`}
+                key={product.id}
+                onClick={() => openProduct(product)}
+                type="button"
+              >
+                <PackageSearch aria-hidden="true" size={20} />
+                <span>
+                  <span className="role-title">{product.name}</span>
+                  <span className="role-copy">{product.description}</span>
+                  <span className="product-price">Rs.{product.price} / {product.unit}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {selectedProduct ? (
+            <div className="booking-panel">
+              <div>
+                <p className="panel-title">{selectedProduct.name}</p>
+                <p className="panel-copy">Choose quantity and book. Payment is simulated for now.</p>
+              </div>
+              <div className="quantity-row">
+                <button
+                  className="icon-button"
+                  onClick={() => setQuantity((current) => Math.max(1, current - 1))}
+                  type="button"
+                  aria-label="Decrease quantity"
+                >
+                  <Minus aria-hidden="true" size={18} />
+                </button>
+                <span className="quantity-value">{quantity}</span>
+                <button
+                  className="icon-button"
+                  onClick={() => setQuantity((current) => current + 1)}
+                  type="button"
+                  aria-label="Increase quantity"
+                >
+                  <Plus aria-hidden="true" size={18} />
+                </button>
+              </div>
+              <div className="status-item">
+                <span className="status-label">Total</span>
+                <span className="status-value">Rs.{total}</span>
+              </div>
+              <button className="primary-button" onClick={bookOrder} type="button">
+                <CreditCard aria-hidden="true" size={18} />
+                Simulate payment
+              </button>
+              {bookingMessage ? <p className="success-message">{bookingMessage}</p> : null}
+            </div>
+          ) : null}
+        </>
+      )}
+    </div>
+  );
+}
+
+function getSimulatedProducts(seller: MerchantSellerSummary): SimulatedProduct[] {
+  const catalogs: Record<MerchantBusinessType, SimulatedProduct[]> = {
+    kirana: [
+      { id: "rice", name: "Basmati Rice", price: 95, unit: "kg", description: "Daily grocery staple" },
+      { id: "milk", name: "Amul Milk", price: 28, unit: "pack", description: "Fresh dairy pack" },
+      { id: "maggi", name: "Maggi Noodles", price: 14, unit: "pack", description: "Instant snack" }
+    ],
+    restaurant: [
+      { id: "thali", name: "Veg Thali", price: 140, unit: "plate", description: "Lunch meal" },
+      { id: "biryani", name: "Biryani", price: 180, unit: "box", description: "Fresh prepared meal" },
+      { id: "tea", name: "Masala Tea", price: 20, unit: "cup", description: "Hot beverage" }
+    ],
+    pharmacy: [
+      { id: "sanitizer", name: "Hand Sanitizer", price: 60, unit: "bottle", description: "Daily hygiene" },
+      { id: "bandage", name: "Bandage Pack", price: 35, unit: "pack", description: "First-aid supply" },
+      { id: "vitamin", name: "Vitamin C", price: 120, unit: "strip", description: "Health supplement" }
+    ],
+    salon: [
+      { id: "haircut", name: "Haircut", price: 180, unit: "slot", description: "Service booking" },
+      { id: "shave", name: "Shave", price: 80, unit: "slot", description: "Grooming service" },
+      { id: "facial", name: "Facial", price: 450, unit: "slot", description: "Skin care service" }
+    ],
+    electronics: [
+      { id: "charger", name: "USB-C Charger", price: 499, unit: "piece", description: "Fast charging adapter" },
+      { id: "earphones", name: "Earphones", price: 699, unit: "piece", description: "Wired audio" },
+      { id: "cable", name: "Charging Cable", price: 199, unit: "piece", description: "Mobile accessory" }
+    ],
+    stationery: [
+      { id: "notebook", name: "Notebook", price: 60, unit: "piece", description: "Ruled pages" },
+      { id: "pen", name: "Ball Pen", price: 10, unit: "piece", description: "Blue ink" },
+      { id: "files", name: "File Folder", price: 25, unit: "piece", description: "Document storage" }
+    ],
+    fashion: [
+      { id: "tshirt", name: "Cotton T-shirt", price: 399, unit: "piece", description: "Casual wear" },
+      { id: "cap", name: "Cap", price: 249, unit: "piece", description: "Daily accessory" },
+      { id: "socks", name: "Socks", price: 99, unit: "pair", description: "Comfort pair" }
+    ],
+    services: [
+      { id: "repair", name: "Basic Repair", price: 250, unit: "visit", description: "Service visit" },
+      { id: "cleaning", name: "Cleaning", price: 300, unit: "slot", description: "Home service" },
+      { id: "consult", name: "Consultation", price: 150, unit: "call", description: "Quick help" }
+    ],
+    other: [
+      { id: "custom", name: "Custom Item", price: 100, unit: "item", description: "Sample product" },
+      { id: "starter", name: "Starter Pack", price: 250, unit: "pack", description: "Sample bundle" },
+      { id: "booking", name: "Booking Slot", price: 150, unit: "slot", description: "Sample service" }
+    ]
+  };
+
+  return catalogs[seller.businessType];
 }

@@ -9,6 +9,7 @@ import {
 } from "@/lib/merchant-options";
 
 type MerchantIdentityRow = {
+  userId?: string;
   storeName: string;
   businessType: string;
   phoneNumber: string;
@@ -21,6 +22,10 @@ type MerchantIdentityRow = {
   fulfillmentType: string;
   deliveryRadiusKm: string;
   minimumOrderValue: number;
+};
+
+export type MerchantSellerSummary = MerchantIdentitySummary & {
+  userId: string;
 };
 
 export type MerchantIdentityInput = {
@@ -57,6 +62,34 @@ export async function getMerchantIdentityForUser(userId: string) {
 
   const row = result.rows[0];
   return row ? fromDatabaseMerchantIdentity(row) : null;
+}
+
+export async function listMerchantSellers() {
+  const result = await getPool().query<MerchantIdentityRow & { userId: string }>(
+    `
+      select
+        "userId",
+        "storeName",
+        "businessType",
+        "phoneNumber",
+        "gpsLocation",
+        "gpsLatitude"::text as "gpsLatitude",
+        "gpsLongitude"::text as "gpsLongitude",
+        "city",
+        "pincode",
+        "storeTimings",
+        "fulfillmentType",
+        "deliveryRadiusKm"::text as "deliveryRadiusKm",
+        "minimumOrderValue"
+      from "MerchantIdentity"
+      order by "storeName" asc
+    `
+  );
+
+  return result.rows.map((row) => ({
+    userId: row.userId,
+    ...fromDatabaseMerchantIdentity(row)
+  }));
 }
 
 export async function upsertMerchantIdentity(userId: string, input: MerchantIdentityInput) {
