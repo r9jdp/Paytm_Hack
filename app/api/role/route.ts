@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
-import { isAppRole, toPrismaRole } from "@/lib/roles";
+import { updateAuthUserRole } from "@/lib/auth-user-store";
+import { isAppRole } from "@/lib/roles";
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -18,10 +18,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Role must be buyer or merchant." }, { status: 400 });
   }
 
-  await prisma.user.update({
-    where: { id: session.user.id },
-    data: { role: toPrismaRole(role) }
-  });
+  await updateAuthUserRole(session.user.id, role);
 
   return NextResponse.json({ role });
 }

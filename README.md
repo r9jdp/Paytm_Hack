@@ -2,12 +2,15 @@
 
 Next.js PWA starter with Google login, buyer/merchant role onboarding, durable role persistence, and a server-only OpenAI Realtime session endpoint for future vision work.
 
+It now includes a standalone Point & Ask AI demo at `/gemini` and a hackathon-ready Gemini Live-like merchant scanner at `/gemini_live`. The `/gemini` route is unauthenticated and focused on camera-based visual Q&A: start the camera, ask a question, auto-capture the current frame, answer with server-side OpenAI vision, and save local history in IndexedDB.
+
 ## Stack
 
 - Next.js App Router
 - Auth.js / NextAuth Google OAuth
 - Prisma with PostgreSQL
 - Manual PWA manifest and service worker
+- Server route for OpenAI vision Q&A
 - Server route for OpenAI Realtime client secrets
 
 ## Setup
@@ -17,6 +20,46 @@ Next.js PWA starter with Google login, buyer/merchant role onboarding, durable r
 3. Run `npm install`.
 4. Run `npm run prisma:migrate -- --name init`.
 5. Run `npm run dev`.
+
+## Point & Ask AI
+
+Open `/gemini` directly. This route does not require login, a role, a database record, or any Paytm flow.
+
+The demo:
+
+1. Starts the browser camera after you tap Start Camera.
+2. Prefers the rear camera on mobile.
+3. Lets you type or speak a question.
+4. Captures the current frame automatically when you tap Ask AI.
+5. Sends the frame and question to `POST /api/ask`.
+6. Shows the answer, observations, and optional detected item table.
+7. Saves the last interactions locally in IndexedDB.
+
+If `OPENAI_API_KEY` is missing or an API call fails, `/api/ask` returns realistic mock answers so the UI remains testable. Set `NEXT_PUBLIC_ENABLE_MOCK_MODE=force` only when you want to skip OpenAI even with a configured key.
+
+## Gemini Live-Like Scanner
+
+Open `/gemini_live` after signing in and choosing the merchant role. The scanner:
+
+1. Starts the camera only after you tap Start scan.
+2. Captures a frame immediately, then every 2 seconds while scanning.
+3. Sends the frame, transcript, current catalog, and merchant context to `POST /api/gemini_live/analyze-frame`.
+4. Merges detected products into a live catalog.
+5. Lets the merchant edit, delete, add, and confirm catalog items.
+6. Exports the reviewed catalog JSON on the same page.
+
+For hackathon reliability, `NEXT_PUBLIC_ENABLE_MOCK_MODE=true` makes the scanner return sample Amul, Britannia, Maggi, and Lays products without requiring an API key.
+
+Relevant env vars:
+
+```text
+OPENAI_API_KEY=
+OPENAI_VISION_MODEL=gpt-4.1-mini
+NEXT_PUBLIC_ENABLE_MOCK_MODE=true
+SARVAM_API_KEY=
+```
+
+`OPENAI_API_KEY` and `SARVAM_API_KEY` must stay server-side. Sarvam is currently a placeholder hook; manual transcript and optional browser speech recognition are the active voice paths.
 
 ## Google OAuth Credentials
 

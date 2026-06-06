@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "prisma generate && next build",
+    "dev": "next dev --webpack",
+    "build": "prisma generate && next build --webpack",
     "start": "next start",
     "lint": "eslint .",
     "prisma:generate": "prisma generate",
@@ -16,17 +16,20 @@
     "lucide-react": "latest",
     "next": "latest",
     "next-auth": "beta",
+    "openai": "^6.42.0",
+    "pg": "^8.21.0",
     "react": "latest",
     "react-dom": "latest"
   },
   "devDependencies": {
     "@eslint/eslintrc": "latest",
     "@types/node": "latest",
+    "@types/pg": "^8.20.0",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "eslint": "latest",
     "eslint-config-next": "latest",
     "prisma": "^6.0.0",
-    "typescript": "latest"
+    "typescript": "^5.9.2"
   }
 }

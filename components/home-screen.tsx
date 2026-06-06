@@ -16,6 +16,7 @@ import {
   Store
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
@@ -113,15 +114,15 @@ export function HomeScreen({ session: initialSession }: HomeScreenProps) {
   const [pendingRole, setPendingRole] = useState<AppRole | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isStandalone, setIsStandalone] = useState(false);
+  const [isStandalone] = useState(() => {
+    if (typeof window === "undefined") return false;
+
+    const iosNavigator = navigator as Navigator & { standalone?: boolean };
+    return window.matchMedia("(display-mode: standalone)").matches || Boolean(iosNavigator.standalone);
+  });
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    const iosNavigator = navigator as Navigator & { standalone?: boolean };
-    setIsStandalone(
-      window.matchMedia("(display-mode: standalone)").matches || Boolean(iosNavigator.standalone)
-    );
-
     const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
       setInstallPrompt(event as BeforeInstallPromptEvent);
@@ -153,7 +154,7 @@ export function HomeScreen({ session: initialSession }: HomeScreenProps) {
       return;
     }
 
-    await update();
+    await update({ role });
     startTransition(() => router.refresh());
     setPendingRole(null);
   }
@@ -333,15 +334,22 @@ function RoleWorkspace({ role }: { role: AppRole }) {
           })}
         </div>
 
-        <div className="vision-frame" aria-label="Realtime vision placeholder">
+        <div className="vision-frame" aria-label="Realtime vision workspace">
           <div className="vision-frame-copy">
             <Camera aria-hidden="true" size={28} />
             <span>Realtime vision</span>
           </div>
-          <span className="surface-chip pending">
-            <RefreshCw aria-hidden="true" size={14} />
-            Integration pending
-          </span>
+          {role === "merchant" ? (
+            <Link className="primary-button" href="/gemini_live">
+              <ScanLine aria-hidden="true" size={18} />
+              Start shop scan
+            </Link>
+          ) : (
+            <span className="surface-chip pending">
+              <RefreshCw aria-hidden="true" size={14} />
+              Merchant scan only
+            </span>
+          )}
         </div>
       </section>
     </div>
