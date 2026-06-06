@@ -12,18 +12,58 @@ enum UserRole {
   MERCHANT
 }
 
+enum MerchantBusinessType {
+  KIRANA
+  RESTAURANT
+  PHARMACY
+  SALON
+  ELECTRONICS
+  STATIONERY
+  FASHION
+  SERVICES
+  OTHER
+}
+
+enum MerchantFulfillmentType {
+  PICKUP_ONLY
+  DELIVERY_ONLY
+  BOTH
+}
+
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  role          UserRole?
-  accounts      Account[]
-  sessions      Session[]
-  authenticators Authenticator[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id               String            @id @default(cuid())
+  name             String?
+  email            String?           @unique
+  emailVerified    DateTime?
+  image            String?
+  role             UserRole?
+  accounts         Account[]
+  sessions         Session[]
+  authenticators   Authenticator[]
+  merchantIdentity MerchantIdentity?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model MerchantIdentity {
+  id                String                  @id @default(cuid())
+  userId            String                  @unique
+  storeName         String
+  businessType      MerchantBusinessType
+  phoneNumber       String
+  gpsLocation       String
+  gpsLatitude       Decimal                 @db.Decimal(9, 6)
+  gpsLongitude      Decimal                 @db.Decimal(9, 6)
+  city              String
+  pincode           String
+  storeTimings      String
+  fulfillmentType   MerchantFulfillmentType
+  deliveryRadiusKm  Decimal                 @db.Decimal(5, 2)
+  minimumOrderValue Int
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Account {

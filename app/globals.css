@@ -34,7 +34,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -299,6 +300,11 @@ h1 {
   outline: none;
 }
 
+.primary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .secondary-button {
   border: 1px solid var(--line);
   background: #ffffff;
@@ -447,6 +453,114 @@ h1 {
   font-weight: 700;
 }
 
+.merchant-onboarding {
+  display: grid;
+  gap: 18px;
+}
+
+.onboarding-header {
+  display: grid;
+  gap: 10px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.field > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #314543;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.field input {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 13px;
+  background: #ffffff;
+  color: var(--ink);
+  outline: none;
+}
+
+.field input:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+}
+
+.field input[readonly] {
+  background: #f8fbf8;
+  color: #314543;
+}
+
+.choice-grid,
+.form-grid,
+.readonly-grid,
+.merchant-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.choice-grid.compact {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.choice-button {
+  min-height: 46px;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #314543;
+  font-weight: 800;
+  text-align: center;
+}
+
+.choice-button:hover,
+.choice-button:focus-visible {
+  border-color: var(--teal);
+  outline: none;
+}
+
+.choice-button.selected {
+  border-color: rgba(15, 118, 110, 0.5);
+  background: rgba(15, 118, 110, 0.1);
+  color: var(--teal-strong);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.merchant-summary {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+}
+
+.summary-item {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.summary-item .status-value {
+  overflow-wrap: anywhere;
+  text-transform: none;
+}
+
 @media (max-width: 860px) {
   .workspace {
     grid-template-columns: 1fr;
@@ -469,7 +583,12 @@ h1 {
   }
 
   .role-grid,
-  .surface-actions {
+  .surface-actions,
+  .choice-grid,
+  .choice-grid.compact,
+  .form-grid,
+  .readonly-grid,
+  .merchant-summary {
     grid-template-columns: 1fr;
   }
 

@@ -18,6 +18,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Role must be buyer or merchant." }, { status: 400 });
   }
 
+  if (role === "merchant") {
+    return NextResponse.json(
+      { error: "Complete merchant onboarding before switching to merchant mode." },
+      { status: 400 }
+    );
+  }
+
   await updateAuthUserRole(session.user.id, role);
 
   return NextResponse.json({ role });

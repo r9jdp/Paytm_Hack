@@ -11,7 +11,7 @@ type GoogleUserInput = {
 
 let pool: Pool | null = null;
 
-function getPool() {
+export function getPool() {
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is not configured.");
   }
