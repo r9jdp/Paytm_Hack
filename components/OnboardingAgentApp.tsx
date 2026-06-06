@@ -82,10 +82,6 @@ function userSaidDone(transcript: string) {
   );
 }
 
-function hasQuantitySignal(items: InventoryItem[]) {
-  return items.some((item) => typeof item.quantity === "number" && item.quantity > 0);
-}
-
 export function OnboardingAgentApp() {
   const videoRef = useRef<VideoStageHandle | null>(null);
   const extractionInFlightRef = useRef(false);
@@ -182,17 +178,20 @@ export function OnboardingAgentApp() {
       exportCreatedRef.current = true;
       setStage("export_ready");
       const payload = buildExport(finalInventory);
-      setExportPayload(payload);
       await saveStorefrontExport(payload).catch(() => {
         setError("Export was generated, but local IndexedDB storage failed.");
       });
-      await saveProductsToDatabase(payload).catch((unknownError) => {
+      try {
+        await saveProductsToDatabase(payload);
+      } catch (unknownError) {
         setError(
           unknownError instanceof Error
             ? unknownError.message
             : "Export was generated, but product database storage failed."
         );
-      });
+        return;
+      }
+      setExportPayload(payload);
       voice.speak(EXPORT_PROMPT);
     },
     [buildExport, voice]
@@ -263,12 +262,8 @@ export function OnboardingAgentApp() {
           rememberFrame("inventory", frameBase64);
         }
 
-        const elapsed = Date.now() - (inventoryStartedAtRef.current ?? Date.now());
         const shouldFinish =
-          nextInventory.length > 0 &&
-          (userSaidDone(transcriptRef.current.map((entry) => entry.text).join(" ")) ||
-            data.inventory.isComplete ||
-            (elapsed > 12_000 && inventoryScansRef.current >= 3 && hasQuantitySignal(nextInventory)));
+          nextInventory.length > 0 && userSaidDone(transcriptRef.current.map((entry) => entry.text).join(" "));
 
         if (shouldFinish) {
           await finalizeExport(nextInventory);
@@ -328,6 +323,13 @@ export function OnboardingAgentApp() {
     voice.stop();
     setIsRunning(false);
     setStage((current) => (current === "export_ready" ? current : "idle"));
+  }
+
+  function finishInventory() {
+    const finalInventory = inventoryRef.current;
+    if (!finalInventory.length || stage === "export_ready") return;
+
+    void finalizeExport(finalInventory);
   }
 
   function resetOnboarding() {
@@ -390,17 +392,30 @@ export function OnboardingAgentApp() {
           <section>
             <h2>Inventory</h2>
             {inventory.length ? (
-              <div className={styles.inventoryList}>
-                {inventory.map((item) => (
-                  <article key={item.id}>
-                    <strong>{item.name}</strong>
-                    <span>
-                      {item.quantity ?? "?"} {item.unit || "units"}
-                      {item.price ? ` · ${item.price}` : ""}
-                    </span>
-                  </article>
-                ))}
-              </div>
+              <>
+                <div className={styles.inventoryList}>
+                  {inventory.map((item) => (
+                    <article key={item.id}>
+                      <strong>{item.name}</strong>
+                      <span>
+                        {item.quantity ?? "?"} {item.unit || "units"}
+                        {item.price ? ` · ${item.price}` : ""}
+                      </span>
+                    </article>
+                  ))}
+                </div>
+                {stage !== "export_ready" ? (
+                  <button
+                    className={styles.primaryButton}
+                    disabled={isExtracting}
+                    onClick={finishInventory}
+                    type="button"
+                  >
+                    <PackageCheck aria-hidden="true" size={16} />
+                    Finish inventory
+                  </button>
+                ) : null}
+              </>
             ) : (
               <p className={styles.emptyCopy}>Waiting for inventory capture.</p>
             )}

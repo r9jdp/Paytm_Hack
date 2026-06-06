@@ -30,11 +30,12 @@ The flow:
 
 1. Starts camera and microphone after you tap Start.
 2. Speaks: “Let’s get your product inventory. Please show me the products and tell me what inventory you have and in what quantity.”
-3. Captures product frames and voice transcript automatically, merging visible labels with spoken quantities.
+3. Captures product frames and voice transcript automatically, merging multiple visible labels with spoken quantities.
 4. Stores inventory, transcripts, and captured thumbnails locally in IndexedDB for this prototype.
-5. Speaks: “Ok, creating your storefront.”
-6. Saves the confirmed product inventory to the Supabase/Postgres `products` table through `POST /api/onboarding/products`.
-7. Generates a local JSON export. It does not publish a public storefront in v1.
+5. Finishes only when you say you are done or press `Finish inventory`.
+6. Speaks: “Ok, creating your storefront.”
+7. Saves the confirmed product inventory to the Supabase/Postgres `products` table through `POST /api/onboarding/products`.
+8. Shows a confirmation panel with an `Open storefront` button for the saved product batch.
 
 If `OPENAI_API_KEY` is missing or an API call fails, the extraction route returns realistic mock data so the UI remains testable. Set `NEXT_PUBLIC_ENABLE_MOCK_MODE=force` only when you want to skip OpenAI even with a configured key.
 
@@ -43,7 +44,7 @@ Relevant env vars:
 ```text
 OPENAI_API_KEY=
 OPENAI_VISION_MODEL=gpt-4.1-mini
-OPENAI_REALTIME_MODEL=gpt-realtime
+OPENAI_REALTIME_MODEL=gpt-realtime-2
 NEXT_PUBLIC_ENABLE_MOCK_MODE=true
 ```
 

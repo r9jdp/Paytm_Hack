@@ -3,6 +3,24 @@ import { randomUUID } from "node:crypto";
 import { getPool } from "@/lib/auth-user-store";
 import type { InventoryItem } from "@/lib/types";
 
+export type StoredProduct = {
+  id: string;
+  userId: string | null;
+  exportId: string;
+  name: string;
+  category: string | null;
+  quantity: number | null;
+  unit: string | null;
+  packSize: string | null;
+  price: string | null;
+  confidence: number;
+  evidenceVisual: string | null;
+  evidenceVoice: string | null;
+  rawItem: InventoryItem;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export type ProductInventoryInput = {
   exportId: string;
   products: InventoryItem[];
@@ -72,4 +90,50 @@ export async function replaceProductsForExport({
   } finally {
     client.release();
   }
+}
+
+export async function listProductsForStorefront({
+  exportId,
+  userId
+}: {
+  exportId?: string | null;
+  userId?: string | null;
+}) {
+  if (exportId?.trim()) {
+    const values = userId ? [exportId.trim(), userId] : [exportId.trim()];
+    const ownershipClause = userId ? 'and ("userId" = $2 or "userId" is null)' : "";
+    const result = await getPool().query<StoredProduct>(
+      `
+        select *
+        from "products"
+        where "exportId" = $1
+        ${ownershipClause}
+        order by "createdAt" asc
+      `,
+      values
+    );
+
+    return result.rows;
+  }
+
+  if (!userId) return [];
+
+  const result = await getPool().query<StoredProduct>(
+    `
+      select *
+      from "products"
+      where "userId" = $1
+        and "exportId" = (
+          select "exportId"
+          from "products"
+          where "userId" = $1
+          order by "createdAt" desc
+          limit 1
+        )
+      order by "createdAt" asc
+    `,
+    [userId]
+  );
+
+  return result.rows;
 }
